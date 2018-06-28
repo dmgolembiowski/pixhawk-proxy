@@ -5,9 +5,10 @@ authors = ["Michal Podhradsky <mpodhradsky@galois.com>"]
 build = "build.rs"
 
 [build-dependencies]
-protobuf-codegen-pure = "2.0"
+prost-build = "0.4"
 
 [dependencies]
 lmcp = { path = "../rust-lmcp" }
-mavlink = { path = "../rust-mavlink" }
-protobuf = "2.0"
+bytes = "0.4"
+prost = "0.4"
+prost-derive = "0.4"
