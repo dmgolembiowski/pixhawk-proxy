@@ -1,5 +1,6 @@
 extern crate lmcp;
 extern crate mavlink;
+extern crate protobuf;
 
 use std::sync::Arc;
 use std::thread;
@@ -12,7 +13,11 @@ use lmcp::afrl::cmasi::entity_state::EntityStateT;
 //use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 use mavlink::common::*;
 
+use protobuf::Message;
 
+mod mavproto;
+
+//include!("/home/michal/Workspace/CPS/pixhawk-proxy/protos/mavlink.rs");
 /*
  Entity state
  ID - fixed
@@ -58,7 +63,7 @@ impl Default for PixhawkProxy {
             current_air_vehicle_state: AirVehicleState::default(),
         }
     }
-}
+} 
 
 fn main() {
     let args: Vec<_> = env::args().collect();
@@ -83,8 +88,27 @@ fn main() {
         if let Ok(msg) = vehicle.recv() {
             match msg {
                 MavMessage::HEARTBEAT(data) => {
-                    println!("Got {:?}", data);
+                    //println!("Got {:?}", data);
                     // TODO: Check for the correct autopilot etc?
+                    let mut m = mavproto::Heartbeat::new();
+                    m.set_typ(42);
+                    m.set_autopilot(data.autopilot.into());
+                    m.set_base_mode(data.base_mode.into());
+                    m.set_custom_mode(data.custom_mode.into());
+                    m.set_system_status(data.system_status.into());
+                    m.set_mavlink_version(data.mavlink_version.into());
+                    println!("has been initialized ={}",m.is_initialized());
+                    let mut v = vec![];
+                    {
+                    let mut stream = protobuf::stream::CodedOutputStream::vec(& mut v);
+                    m.write_to_with_cached_sizes(& mut stream).unwrap();
+                    }
+                    println!("v={:?}",v);
+                    
+                    let mut n = mavproto::Heartbeat::new();
+                    println!("n={:?}",n);
+                    n.merge_from_bytes(&v[..]).unwrap();
+                    println!("n={:?}",n);
                 }
                 MavMessage::VFR_HUD(data) => {
                     *proxy.current_air_vehicle_state.airspeed_mut() = data.airspeed;
