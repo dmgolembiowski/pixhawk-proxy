@@ -15,6 +15,9 @@ fn main() {
 extern crate prost_build;
 
 fn main() {
-    prost_build::compile_protos(&["src/common.proto"],
+    let mut config = prost_build::Config::new();
+    config.type_attribute(".", "#[derive(Serialize)]");
+    //config.type_attribute(".", "#[serde(rename_all = \"camelCase\")]");
+    config.compile_protos(&["src/common.proto"],
                                 &["src/"]).unwrap();
 }

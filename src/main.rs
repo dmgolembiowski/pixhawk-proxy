@@ -2,6 +2,11 @@ extern crate prost;
 #[macro_use]
 extern crate prost_derive;
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
 use std::io::Cursor;
 
 use prost::Message;
@@ -11,7 +16,38 @@ pub mod mavlink_common {
     include!(concat!(env!("OUT_DIR"), "/mavlink.common.rs"));
 }
 
+fn alt_test() { 
+    let mut alt = mavlink_common::Altitude::default();
+    alt.time_usec = 53700512; 
+    alt.altitude_monotonic=488.23987;
+    alt.altitude_amsl = 488.01703;
+    alt.altitude_local=0.03985728;
+    alt.altitude_relative=0.012936121;
+    alt.altitude_terrain= std::f32::NAN;
+    alt.bottom_clearance = std::f32::NAN;
+    
+    println!("original msg={:?}",alt);
+    
+    let stream = serde_json::to_string(&alt).unwrap();
+    println!("json msg={}",stream);
+    
+    /*
+    // Not supported right now
+    let new_alt: mavlink_common::Altitude = serde_json::from_str(&stream).unwrap();
+    */
+    
+    let mut buf = Vec::new();
+    buf.reserve(alt.encoded_len());
+    alt.encode(&mut buf).unwrap();
+    println!("serialized len = {}", buf.len());
+    
+    let new_msg = mavlink_common::Altitude::decode(&mut Cursor::new(buf));
+    println!("decoded msg = {:?}", new_msg);
+}
+
 fn main() {
+    //alt_test();
+    
     let mut msg = mavlink_common::SysStatus::default();
     msg.onboard_control_sensors_present = 32;
     msg.onboard_control_sensors_enabled = 0;
@@ -27,12 +63,29 @@ fn main() {
     msg.errors_count4 = 0;
     msg.battery_remaining = 100;
     println!("original msg={:?}",msg);
+    /*
+    let mut mavmsg = mavlink_common::MavlinkMessage::default();
+    mavmsg.sys_status = Some(msg);
+    
+    let stream = serde_json::to_string(&mavmsg).unwrap();
+    println!("json msg={}",stream);
+    
+    let mut buf = Vec::new();
+    buf.reserve(mavmsg.encoded_len());
+    mavmsg.encode(&mut buf).unwrap();
+    println!("serialized len = {}", buf.len());
+    */
+    
+    let stream = serde_json::to_string(&msg).unwrap();
+    println!("json msg={}",stream);
     
     let v = serialize_msg(&msg);
     println!("serialized len = {}", v.len());
     
     let new_msg = deserialize_msg(&v).unwrap();
     println!("decoded msg={:?}",new_msg);
+    
+    
     
 }
 
