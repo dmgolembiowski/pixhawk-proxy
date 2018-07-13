@@ -1,0 +1,1430 @@
+// This file was automatically generated, do not edit
+syntax = "proto2";
+package mavlink.common;
+// id: 0 HEARTBEAT
+message HEARTBEAT {
+  required uint32 custom_mode = 1;
+  required uint32 mavtype = 2;
+  required uint32 autopilot = 3;
+  required uint32 base_mode = 4;
+  required uint32 system_status = 5;
+  required uint32 mavlink_version = 6;
+}
+// id: 1 SYS_STATUS
+message SYS_STATUS {
+  required uint32 onboard_control_sensors_present = 1;
+  required uint32 onboard_control_sensors_enabled = 2;
+  required uint32 onboard_control_sensors_health = 3;
+  required uint32 load = 4;
+  required uint32 voltage_battery = 5;
+  required int32 current_battery = 6;
+  required uint32 drop_rate_comm = 7;
+  required uint32 errors_comm = 8;
+  required uint32 errors_count1 = 9;
+  required uint32 errors_count2 = 10;
+  required uint32 errors_count3 = 11;
+  required uint32 errors_count4 = 12;
+  required int32 battery_remaining = 13;
+}
+// id: 2 SYSTEM_TIME
+message SYSTEM_TIME {
+  required uint64 time_unix_usec = 1;
+  required uint32 time_boot_ms = 2;
+}
+// id: 4 PING
+message PING {
+  required uint64 time_usec = 1;
+  required uint32 seq = 2;
+  required uint32 target_system = 3;
+  required uint32 target_component = 4;
+}
+// id: 5 CHANGE_OPERATOR_CONTROL
+message CHANGE_OPERATOR_CONTROL {
+  required uint32 target_system = 1;
+  required uint32 control_request = 2;
+  required uint32 version = 3;
+  repeated uint32 passkey = 4;
+}
+// id: 6 CHANGE_OPERATOR_CONTROL_ACK
+message CHANGE_OPERATOR_CONTROL_ACK {
+  required uint32 gcs_system_id = 1;
+  required uint32 control_request = 2;
+  required uint32 ack = 3;
+}
+// id: 7 AUTH_KEY
+message AUTH_KEY { repeated uint32 key = 1; }
+// id: 11 SET_MODE
+message SET_MODE {
+  required uint32 custom_mode = 1;
+  required uint32 target_system = 2;
+  required uint32 base_mode = 3;
+}
+// id: 20 PARAM_REQUEST_READ
+message PARAM_REQUEST_READ {
+  required int32 param_index = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+  repeated uint32 param_id = 4;
+}
+// id: 21 PARAM_REQUEST_LIST
+message PARAM_REQUEST_LIST {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+}
+// id: 22 PARAM_VALUE
+message PARAM_VALUE {
+  required float param_value = 1;
+  required uint32 param_count = 2;
+  required uint32 param_index = 3;
+  repeated uint32 param_id = 4;
+  required uint32 param_type = 5;
+}
+// id: 23 PARAM_SET
+message PARAM_SET {
+  required float param_value = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+  repeated uint32 param_id = 4;
+  required uint32 param_type = 5;
+}
+// id: 24 GPS_RAW_INT
+message GPS_RAW_INT {
+  required uint64 time_usec = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required int32 alt = 4;
+  required uint32 eph = 5;
+  required uint32 epv = 6;
+  required uint32 vel = 7;
+  required uint32 cog = 8;
+  required uint32 fix_type = 9;
+  required uint32 satellites_visible = 10;
+}
+// id: 25 GPS_STATUS
+message GPS_STATUS {
+  required uint32 satellites_visible = 1;
+  repeated uint32 satellite_prn = 2;
+  repeated uint32 satellite_used = 3;
+  repeated uint32 satellite_elevation = 4;
+  repeated uint32 satellite_azimuth = 5;
+  repeated uint32 satellite_snr = 6;
+}
+// id: 26 SCALED_IMU
+message SCALED_IMU {
+  required uint32 time_boot_ms = 1;
+  required int32 xacc = 2;
+  required int32 yacc = 3;
+  required int32 zacc = 4;
+  required int32 xgyro = 5;
+  required int32 ygyro = 6;
+  required int32 zgyro = 7;
+  required int32 xmag = 8;
+  required int32 ymag = 9;
+  required int32 zmag = 10;
+}
+// id: 27 RAW_IMU
+message RAW_IMU {
+  required uint64 time_usec = 1;
+  required int32 xacc = 2;
+  required int32 yacc = 3;
+  required int32 zacc = 4;
+  required int32 xgyro = 5;
+  required int32 ygyro = 6;
+  required int32 zgyro = 7;
+  required int32 xmag = 8;
+  required int32 ymag = 9;
+  required int32 zmag = 10;
+}
+// id: 28 RAW_PRESSURE
+message RAW_PRESSURE {
+  required uint64 time_usec = 1;
+  required int32 press_abs = 2;
+  required int32 press_diff1 = 3;
+  required int32 press_diff2 = 4;
+  required int32 temperature = 5;
+}
+// id: 29 SCALED_PRESSURE
+message SCALED_PRESSURE {
+  required uint32 time_boot_ms = 1;
+  required float press_abs = 2;
+  required float press_diff = 3;
+  required int32 temperature = 4;
+}
+// id: 30 ATTITUDE
+message ATTITUDE {
+  required uint32 time_boot_ms = 1;
+  required float roll = 2;
+  required float pitch = 3;
+  required float yaw = 4;
+  required float rollspeed = 5;
+  required float pitchspeed = 6;
+  required float yawspeed = 7;
+}
+// id: 31 ATTITUDE_QUATERNION
+message ATTITUDE_QUATERNION {
+  required uint32 time_boot_ms = 1;
+  required float q1 = 2;
+  required float q2 = 3;
+  required float q3 = 4;
+  required float q4 = 5;
+  required float rollspeed = 6;
+  required float pitchspeed = 7;
+  required float yawspeed = 8;
+}
+// id: 32 LOCAL_POSITION_NED
+message LOCAL_POSITION_NED {
+  required uint32 time_boot_ms = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float vx = 5;
+  required float vy = 6;
+  required float vz = 7;
+}
+// id: 33 GLOBAL_POSITION_INT
+message GLOBAL_POSITION_INT {
+  required uint32 time_boot_ms = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required int32 alt = 4;
+  required int32 relative_alt = 5;
+  required int32 vx = 6;
+  required int32 vy = 7;
+  required int32 vz = 8;
+  required uint32 hdg = 9;
+}
+// id: 34 RC_CHANNELS_SCALED
+message RC_CHANNELS_SCALED {
+  required uint32 time_boot_ms = 1;
+  required int32 chan1_scaled = 2;
+  required int32 chan2_scaled = 3;
+  required int32 chan3_scaled = 4;
+  required int32 chan4_scaled = 5;
+  required int32 chan5_scaled = 6;
+  required int32 chan6_scaled = 7;
+  required int32 chan7_scaled = 8;
+  required int32 chan8_scaled = 9;
+  required uint32 port = 10;
+  required uint32 rssi = 11;
+}
+// id: 35 RC_CHANNELS_RAW
+message RC_CHANNELS_RAW {
+  required uint32 time_boot_ms = 1;
+  required uint32 chan1_raw = 2;
+  required uint32 chan2_raw = 3;
+  required uint32 chan3_raw = 4;
+  required uint32 chan4_raw = 5;
+  required uint32 chan5_raw = 6;
+  required uint32 chan6_raw = 7;
+  required uint32 chan7_raw = 8;
+  required uint32 chan8_raw = 9;
+  required uint32 port = 10;
+  required uint32 rssi = 11;
+}
+// id: 36 SERVO_OUTPUT_RAW
+message SERVO_OUTPUT_RAW {
+  required uint32 time_usec = 1;
+  required uint32 servo1_raw = 2;
+  required uint32 servo2_raw = 3;
+  required uint32 servo3_raw = 4;
+  required uint32 servo4_raw = 5;
+  required uint32 servo5_raw = 6;
+  required uint32 servo6_raw = 7;
+  required uint32 servo7_raw = 8;
+  required uint32 servo8_raw = 9;
+  required uint32 port = 10;
+}
+// id: 37 MISSION_REQUEST_PARTIAL_LIST
+message MISSION_REQUEST_PARTIAL_LIST {
+  required int32 start_index = 1;
+  required int32 end_index = 2;
+  required uint32 target_system = 3;
+  required uint32 target_component = 4;
+}
+// id: 38 MISSION_WRITE_PARTIAL_LIST
+message MISSION_WRITE_PARTIAL_LIST {
+  required int32 start_index = 1;
+  required int32 end_index = 2;
+  required uint32 target_system = 3;
+  required uint32 target_component = 4;
+}
+// id: 39 MISSION_ITEM
+message MISSION_ITEM {
+  required float param1 = 1;
+  required float param2 = 2;
+  required float param3 = 3;
+  required float param4 = 4;
+  required float x = 5;
+  required float y = 6;
+  required float z = 7;
+  required uint32 seq = 8;
+  required uint32 command = 9;
+  required uint32 target_system = 10;
+  required uint32 target_component = 11;
+  required uint32 frame = 12;
+  required uint32 current = 13;
+  required uint32 autocontinue = 14;
+}
+// id: 40 MISSION_REQUEST
+message MISSION_REQUEST {
+  required uint32 seq = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+}
+// id: 41 MISSION_SET_CURRENT
+message MISSION_SET_CURRENT {
+  required uint32 seq = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+}
+// id: 42 MISSION_CURRENT
+message MISSION_CURRENT { required uint32 seq = 1; }
+// id: 43 MISSION_REQUEST_LIST
+message MISSION_REQUEST_LIST {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+}
+// id: 44 MISSION_COUNT
+message MISSION_COUNT {
+  required uint32 count = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+}
+// id: 45 MISSION_CLEAR_ALL
+message MISSION_CLEAR_ALL {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+}
+// id: 46 MISSION_ITEM_REACHED
+message MISSION_ITEM_REACHED { required uint32 seq = 1; }
+// id: 47 MISSION_ACK
+message MISSION_ACK {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+  required uint32 mavtype = 3;
+}
+// id: 48 SET_GPS_GLOBAL_ORIGIN
+message SET_GPS_GLOBAL_ORIGIN {
+  required int32 latitude = 1;
+  required int32 longitude = 2;
+  required int32 altitude = 3;
+  required uint32 target_system = 4;
+}
+// id: 49 GPS_GLOBAL_ORIGIN
+message GPS_GLOBAL_ORIGIN {
+  required int32 latitude = 1;
+  required int32 longitude = 2;
+  required int32 altitude = 3;
+}
+// id: 50 PARAM_MAP_RC
+message PARAM_MAP_RC {
+  required float param_value0 = 1;
+  required float scale = 2;
+  required float param_value_min = 3;
+  required float param_value_max = 4;
+  required int32 param_index = 5;
+  required uint32 target_system = 6;
+  required uint32 target_component = 7;
+  repeated uint32 param_id = 8;
+  required uint32 parameter_rc_channel_index = 9;
+}
+// id: 54 SAFETY_SET_ALLOWED_AREA
+message SAFETY_SET_ALLOWED_AREA {
+  required float p1x = 1;
+  required float p1y = 2;
+  required float p1z = 3;
+  required float p2x = 4;
+  required float p2y = 5;
+  required float p2z = 6;
+  required uint32 target_system = 7;
+  required uint32 target_component = 8;
+  required uint32 frame = 9;
+}
+// id: 55 SAFETY_ALLOWED_AREA
+message SAFETY_ALLOWED_AREA {
+  required float p1x = 1;
+  required float p1y = 2;
+  required float p1z = 3;
+  required float p2x = 4;
+  required float p2y = 5;
+  required float p2z = 6;
+  required uint32 frame = 7;
+}
+// id: 61 ATTITUDE_QUATERNION_COV
+message ATTITUDE_QUATERNION_COV {
+  required uint32 time_boot_ms = 1;
+  repeated float q = 2;
+  required float rollspeed = 3;
+  required float pitchspeed = 4;
+  required float yawspeed = 5;
+  repeated float covariance = 6;
+}
+// id: 62 NAV_CONTROLLER_OUTPUT
+message NAV_CONTROLLER_OUTPUT {
+  required float nav_roll = 1;
+  required float nav_pitch = 2;
+  required float alt_error = 3;
+  required float aspd_error = 4;
+  required float xtrack_error = 5;
+  required int32 nav_bearing = 6;
+  required int32 target_bearing = 7;
+  required uint32 wp_dist = 8;
+}
+// id: 63 GLOBAL_POSITION_INT_COV
+message GLOBAL_POSITION_INT_COV {
+  required uint64 time_utc = 1;
+  required uint32 time_boot_ms = 2;
+  required int32 lat = 3;
+  required int32 lon = 4;
+  required int32 alt = 5;
+  required int32 relative_alt = 6;
+  required float vx = 7;
+  required float vy = 8;
+  required float vz = 9;
+  repeated float covariance = 10;
+  required uint32 estimator_type = 11;
+}
+// id: 64 LOCAL_POSITION_NED_COV
+message LOCAL_POSITION_NED_COV {
+  required uint64 time_utc = 1;
+  required uint32 time_boot_ms = 2;
+  required float x = 3;
+  required float y = 4;
+  required float z = 5;
+  required float vx = 6;
+  required float vy = 7;
+  required float vz = 8;
+  required float ax = 9;
+  required float ay = 10;
+  required float az = 11;
+  repeated float covariance = 12;
+  required uint32 estimator_type = 13;
+}
+// id: 65 RC_CHANNELS
+message RC_CHANNELS {
+  required uint32 time_boot_ms = 1;
+  required uint32 chan1_raw = 2;
+  required uint32 chan2_raw = 3;
+  required uint32 chan3_raw = 4;
+  required uint32 chan4_raw = 5;
+  required uint32 chan5_raw = 6;
+  required uint32 chan6_raw = 7;
+  required uint32 chan7_raw = 8;
+  required uint32 chan8_raw = 9;
+  required uint32 chan9_raw = 10;
+  required uint32 chan10_raw = 11;
+  required uint32 chan11_raw = 12;
+  required uint32 chan12_raw = 13;
+  required uint32 chan13_raw = 14;
+  required uint32 chan14_raw = 15;
+  required uint32 chan15_raw = 16;
+  required uint32 chan16_raw = 17;
+  required uint32 chan17_raw = 18;
+  required uint32 chan18_raw = 19;
+  required uint32 chancount = 20;
+  required uint32 rssi = 21;
+}
+// id: 66 REQUEST_DATA_STREAM
+message REQUEST_DATA_STREAM {
+  required uint32 req_message_rate = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+  required uint32 req_stream_id = 4;
+  required uint32 start_stop = 5;
+}
+// id: 67 DATA_STREAM
+message DATA_STREAM {
+  required uint32 message_rate = 1;
+  required uint32 stream_id = 2;
+  required uint32 on_off = 3;
+}
+// id: 69 MANUAL_CONTROL
+message MANUAL_CONTROL {
+  required int32 x = 1;
+  required int32 y = 2;
+  required int32 z = 3;
+  required int32 r = 4;
+  required uint32 buttons = 5;
+  required uint32 target = 6;
+}
+// id: 70 RC_CHANNELS_OVERRIDE
+message RC_CHANNELS_OVERRIDE {
+  required uint32 chan1_raw = 1;
+  required uint32 chan2_raw = 2;
+  required uint32 chan3_raw = 3;
+  required uint32 chan4_raw = 4;
+  required uint32 chan5_raw = 5;
+  required uint32 chan6_raw = 6;
+  required uint32 chan7_raw = 7;
+  required uint32 chan8_raw = 8;
+  required uint32 target_system = 9;
+  required uint32 target_component = 10;
+}
+// id: 73 MISSION_ITEM_INT
+message MISSION_ITEM_INT {
+  required float param1 = 1;
+  required float param2 = 2;
+  required float param3 = 3;
+  required float param4 = 4;
+  required int32 x = 5;
+  required int32 y = 6;
+  required float z = 7;
+  required uint32 seq = 8;
+  required uint32 command = 9;
+  required uint32 target_system = 10;
+  required uint32 target_component = 11;
+  required uint32 frame = 12;
+  required uint32 current = 13;
+  required uint32 autocontinue = 14;
+}
+// id: 74 VFR_HUD
+message VFR_HUD {
+  required float airspeed = 1;
+  required float groundspeed = 2;
+  required float alt = 3;
+  required float climb = 4;
+  required int32 heading = 5;
+  required uint32 throttle = 6;
+}
+// id: 75 COMMAND_INT
+message COMMAND_INT {
+  required float param1 = 1;
+  required float param2 = 2;
+  required float param3 = 3;
+  required float param4 = 4;
+  required int32 x = 5;
+  required int32 y = 6;
+  required float z = 7;
+  required uint32 command = 8;
+  required uint32 target_system = 9;
+  required uint32 target_component = 10;
+  required uint32 frame = 11;
+  required uint32 current = 12;
+  required uint32 autocontinue = 13;
+}
+// id: 76 COMMAND_LONG
+message COMMAND_LONG {
+  required float param1 = 1;
+  required float param2 = 2;
+  required float param3 = 3;
+  required float param4 = 4;
+  required float param5 = 5;
+  required float param6 = 6;
+  required float param7 = 7;
+  required uint32 command = 8;
+  required uint32 target_system = 9;
+  required uint32 target_component = 10;
+  required uint32 confirmation = 11;
+}
+// id: 77 COMMAND_ACK
+message COMMAND_ACK {
+  required uint32 command = 1;
+  required uint32 result = 2;
+}
+// id: 81 MANUAL_SETPOINT
+message MANUAL_SETPOINT {
+  required uint32 time_boot_ms = 1;
+  required float roll = 2;
+  required float pitch = 3;
+  required float yaw = 4;
+  required float thrust = 5;
+  required uint32 mode_switch = 6;
+  required uint32 manual_override_switch = 7;
+}
+// id: 82 SET_ATTITUDE_TARGET
+message SET_ATTITUDE_TARGET {
+  required uint32 time_boot_ms = 1;
+  repeated float q = 2;
+  required float body_roll_rate = 3;
+  required float body_pitch_rate = 4;
+  required float body_yaw_rate = 5;
+  required float thrust = 6;
+  required uint32 target_system = 7;
+  required uint32 target_component = 8;
+  required uint32 type_mask = 9;
+}
+// id: 83 ATTITUDE_TARGET
+message ATTITUDE_TARGET {
+  required uint32 time_boot_ms = 1;
+  repeated float q = 2;
+  required float body_roll_rate = 3;
+  required float body_pitch_rate = 4;
+  required float body_yaw_rate = 5;
+  required float thrust = 6;
+  required uint32 type_mask = 7;
+}
+// id: 84 SET_POSITION_TARGET_LOCAL_NED
+message SET_POSITION_TARGET_LOCAL_NED {
+  required uint32 time_boot_ms = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float vx = 5;
+  required float vy = 6;
+  required float vz = 7;
+  required float afx = 8;
+  required float afy = 9;
+  required float afz = 10;
+  required float yaw = 11;
+  required float yaw_rate = 12;
+  required uint32 type_mask = 13;
+  required uint32 target_system = 14;
+  required uint32 target_component = 15;
+  required uint32 coordinate_frame = 16;
+}
+// id: 85 POSITION_TARGET_LOCAL_NED
+message POSITION_TARGET_LOCAL_NED {
+  required uint32 time_boot_ms = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float vx = 5;
+  required float vy = 6;
+  required float vz = 7;
+  required float afx = 8;
+  required float afy = 9;
+  required float afz = 10;
+  required float yaw = 11;
+  required float yaw_rate = 12;
+  required uint32 type_mask = 13;
+  required uint32 coordinate_frame = 14;
+}
+// id: 86 SET_POSITION_TARGET_GLOBAL_INT
+message SET_POSITION_TARGET_GLOBAL_INT {
+  required uint32 time_boot_ms = 1;
+  required int32 lat_int = 2;
+  required int32 lon_int = 3;
+  required float alt = 4;
+  required float vx = 5;
+  required float vy = 6;
+  required float vz = 7;
+  required float afx = 8;
+  required float afy = 9;
+  required float afz = 10;
+  required float yaw = 11;
+  required float yaw_rate = 12;
+  required uint32 type_mask = 13;
+  required uint32 target_system = 14;
+  required uint32 target_component = 15;
+  required uint32 coordinate_frame = 16;
+}
+// id: 87 POSITION_TARGET_GLOBAL_INT
+message POSITION_TARGET_GLOBAL_INT {
+  required uint32 time_boot_ms = 1;
+  required int32 lat_int = 2;
+  required int32 lon_int = 3;
+  required float alt = 4;
+  required float vx = 5;
+  required float vy = 6;
+  required float vz = 7;
+  required float afx = 8;
+  required float afy = 9;
+  required float afz = 10;
+  required float yaw = 11;
+  required float yaw_rate = 12;
+  required uint32 type_mask = 13;
+  required uint32 coordinate_frame = 14;
+}
+// id: 89 LOCAL_POSITION_NED_SYSTEM_GLOBAL_OFFSET
+message LOCAL_POSITION_NED_SYSTEM_GLOBAL_OFFSET {
+  required uint32 time_boot_ms = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float roll = 5;
+  required float pitch = 6;
+  required float yaw = 7;
+}
+// id: 90 HIL_STATE
+message HIL_STATE {
+  required uint64 time_usec = 1;
+  required float roll = 2;
+  required float pitch = 3;
+  required float yaw = 4;
+  required float rollspeed = 5;
+  required float pitchspeed = 6;
+  required float yawspeed = 7;
+  required int32 lat = 8;
+  required int32 lon = 9;
+  required int32 alt = 10;
+  required int32 vx = 11;
+  required int32 vy = 12;
+  required int32 vz = 13;
+  required int32 xacc = 14;
+  required int32 yacc = 15;
+  required int32 zacc = 16;
+}
+// id: 91 HIL_CONTROLS
+message HIL_CONTROLS {
+  required uint64 time_usec = 1;
+  required float roll_ailerons = 2;
+  required float pitch_elevator = 3;
+  required float yaw_rudder = 4;
+  required float throttle = 5;
+  required float aux1 = 6;
+  required float aux2 = 7;
+  required float aux3 = 8;
+  required float aux4 = 9;
+  required uint32 mode = 10;
+  required uint32 nav_mode = 11;
+}
+// id: 92 HIL_RC_INPUTS_RAW
+message HIL_RC_INPUTS_RAW {
+  required uint64 time_usec = 1;
+  required uint32 chan1_raw = 2;
+  required uint32 chan2_raw = 3;
+  required uint32 chan3_raw = 4;
+  required uint32 chan4_raw = 5;
+  required uint32 chan5_raw = 6;
+  required uint32 chan6_raw = 7;
+  required uint32 chan7_raw = 8;
+  required uint32 chan8_raw = 9;
+  required uint32 chan9_raw = 10;
+  required uint32 chan10_raw = 11;
+  required uint32 chan11_raw = 12;
+  required uint32 chan12_raw = 13;
+  required uint32 rssi = 14;
+}
+// id: 100 OPTICAL_FLOW
+message OPTICAL_FLOW {
+  required uint64 time_usec = 1;
+  required float flow_comp_m_x = 2;
+  required float flow_comp_m_y = 3;
+  required float ground_distance = 4;
+  required int32 flow_x = 5;
+  required int32 flow_y = 6;
+  required uint32 sensor_id = 7;
+  required uint32 quality = 8;
+}
+// id: 101 GLOBAL_VISION_POSITION_ESTIMATE
+message GLOBAL_VISION_POSITION_ESTIMATE {
+  required uint64 usec = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float roll = 5;
+  required float pitch = 6;
+  required float yaw = 7;
+}
+// id: 102 VISION_POSITION_ESTIMATE
+message VISION_POSITION_ESTIMATE {
+  required uint64 usec = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float roll = 5;
+  required float pitch = 6;
+  required float yaw = 7;
+}
+// id: 103 VISION_SPEED_ESTIMATE
+message VISION_SPEED_ESTIMATE {
+  required uint64 usec = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+}
+// id: 104 VICON_POSITION_ESTIMATE
+message VICON_POSITION_ESTIMATE {
+  required uint64 usec = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  required float roll = 5;
+  required float pitch = 6;
+  required float yaw = 7;
+}
+// id: 105 HIGHRES_IMU
+message HIGHRES_IMU {
+  required uint64 time_usec = 1;
+  required float xacc = 2;
+  required float yacc = 3;
+  required float zacc = 4;
+  required float xgyro = 5;
+  required float ygyro = 6;
+  required float zgyro = 7;
+  required float xmag = 8;
+  required float ymag = 9;
+  required float zmag = 10;
+  required float abs_pressure = 11;
+  required float diff_pressure = 12;
+  required float pressure_alt = 13;
+  required float temperature = 14;
+  required uint32 fields_updated = 15;
+}
+// id: 106 OPTICAL_FLOW_RAD
+message OPTICAL_FLOW_RAD {
+  required uint64 time_usec = 1;
+  required uint32 integration_time_us = 2;
+  required float integrated_x = 3;
+  required float integrated_y = 4;
+  required float integrated_xgyro = 5;
+  required float integrated_ygyro = 6;
+  required float integrated_zgyro = 7;
+  required uint32 time_delta_distance_us = 8;
+  required float distance = 9;
+  required int32 temperature = 10;
+  required uint32 sensor_id = 11;
+  required uint32 quality = 12;
+}
+// id: 107 HIL_SENSOR
+message HIL_SENSOR {
+  required uint64 time_usec = 1;
+  required float xacc = 2;
+  required float yacc = 3;
+  required float zacc = 4;
+  required float xgyro = 5;
+  required float ygyro = 6;
+  required float zgyro = 7;
+  required float xmag = 8;
+  required float ymag = 9;
+  required float zmag = 10;
+  required float abs_pressure = 11;
+  required float diff_pressure = 12;
+  required float pressure_alt = 13;
+  required float temperature = 14;
+  required uint32 fields_updated = 15;
+}
+// id: 108 SIM_STATE
+message SIM_STATE {
+  required float q1 = 1;
+  required float q2 = 2;
+  required float q3 = 3;
+  required float q4 = 4;
+  required float roll = 5;
+  required float pitch = 6;
+  required float yaw = 7;
+  required float xacc = 8;
+  required float yacc = 9;
+  required float zacc = 10;
+  required float xgyro = 11;
+  required float ygyro = 12;
+  required float zgyro = 13;
+  required float lat = 14;
+  required float lon = 15;
+  required float alt = 16;
+  required float std_dev_horz = 17;
+  required float std_dev_vert = 18;
+  required float vn = 19;
+  required float ve = 20;
+  required float vd = 21;
+}
+// id: 109 RADIO_STATUS
+message RADIO_STATUS {
+  required uint32 rxerrors = 1;
+  required uint32 fixed = 2;
+  required uint32 rssi = 3;
+  required uint32 remrssi = 4;
+  required uint32 txbuf = 5;
+  required uint32 noise = 6;
+  required uint32 remnoise = 7;
+}
+// id: 110 FILE_TRANSFER_PROTOCOL
+message FILE_TRANSFER_PROTOCOL {
+  required uint32 target_network = 1;
+  required uint32 target_system = 2;
+  required uint32 target_component = 3;
+  repeated uint32 payload = 4;
+}
+// id: 111 TIMESYNC
+message TIMESYNC {
+  required int64 tc1 = 1;
+  required int64 ts1 = 2;
+}
+// id: 112 CAMERA_TRIGGER
+message CAMERA_TRIGGER {
+  required uint64 time_usec = 1;
+  required uint32 seq = 2;
+}
+// id: 113 HIL_GPS
+message HIL_GPS {
+  required uint64 time_usec = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required int32 alt = 4;
+  required uint32 eph = 5;
+  required uint32 epv = 6;
+  required uint32 vel = 7;
+  required int32 vn = 8;
+  required int32 ve = 9;
+  required int32 vd = 10;
+  required uint32 cog = 11;
+  required uint32 fix_type = 12;
+  required uint32 satellites_visible = 13;
+}
+// id: 114 HIL_OPTICAL_FLOW
+message HIL_OPTICAL_FLOW {
+  required uint64 time_usec = 1;
+  required uint32 integration_time_us = 2;
+  required float integrated_x = 3;
+  required float integrated_y = 4;
+  required float integrated_xgyro = 5;
+  required float integrated_ygyro = 6;
+  required float integrated_zgyro = 7;
+  required uint32 time_delta_distance_us = 8;
+  required float distance = 9;
+  required int32 temperature = 10;
+  required uint32 sensor_id = 11;
+  required uint32 quality = 12;
+}
+// id: 115 HIL_STATE_QUATERNION
+message HIL_STATE_QUATERNION {
+  required uint64 time_usec = 1;
+  repeated float attitude_quaternion = 2;
+  required float rollspeed = 3;
+  required float pitchspeed = 4;
+  required float yawspeed = 5;
+  required int32 lat = 6;
+  required int32 lon = 7;
+  required int32 alt = 8;
+  required int32 vx = 9;
+  required int32 vy = 10;
+  required int32 vz = 11;
+  required uint32 ind_airspeed = 12;
+  required uint32 true_airspeed = 13;
+  required int32 xacc = 14;
+  required int32 yacc = 15;
+  required int32 zacc = 16;
+}
+// id: 116 SCALED_IMU2
+message SCALED_IMU2 {
+  required uint32 time_boot_ms = 1;
+  required int32 xacc = 2;
+  required int32 yacc = 3;
+  required int32 zacc = 4;
+  required int32 xgyro = 5;
+  required int32 ygyro = 6;
+  required int32 zgyro = 7;
+  required int32 xmag = 8;
+  required int32 ymag = 9;
+  required int32 zmag = 10;
+}
+// id: 117 LOG_REQUEST_LIST
+message LOG_REQUEST_LIST {
+  required uint32 start = 1;
+  required uint32 end = 2;
+  required uint32 target_system = 3;
+  required uint32 target_component = 4;
+}
+// id: 118 LOG_ENTRY
+message LOG_ENTRY {
+  required uint32 time_utc = 1;
+  required uint32 size = 2;
+  required uint32 id = 3;
+  required uint32 num_logs = 4;
+  required uint32 last_log_num = 5;
+}
+// id: 119 LOG_REQUEST_DATA
+message LOG_REQUEST_DATA {
+  required uint32 ofs = 1;
+  required uint32 count = 2;
+  required uint32 id = 3;
+  required uint32 target_system = 4;
+  required uint32 target_component = 5;
+}
+// id: 120 LOG_DATA
+message LOG_DATA {
+  required uint32 ofs = 1;
+  required uint32 id = 2;
+  required uint32 count = 3;
+  repeated uint32 data = 4;
+}
+// id: 121 LOG_ERASE
+message LOG_ERASE {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+}
+// id: 122 LOG_REQUEST_END
+message LOG_REQUEST_END {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+}
+// id: 123 GPS_INJECT_DATA
+message GPS_INJECT_DATA {
+  required uint32 target_system = 1;
+  required uint32 target_component = 2;
+  required uint32 len = 3;
+  repeated uint32 data = 4;
+}
+// id: 124 GPS2_RAW
+message GPS2_RAW {
+  required uint64 time_usec = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required int32 alt = 4;
+  required uint32 dgps_age = 5;
+  required uint32 eph = 6;
+  required uint32 epv = 7;
+  required uint32 vel = 8;
+  required uint32 cog = 9;
+  required uint32 fix_type = 10;
+  required uint32 satellites_visible = 11;
+  required uint32 dgps_numch = 12;
+}
+// id: 125 POWER_STATUS
+message POWER_STATUS {
+  required uint32 Vcc = 1;
+  required uint32 Vservo = 2;
+  required uint32 flags = 3;
+}
+// id: 126 SERIAL_CONTROL
+message SERIAL_CONTROL {
+  required uint32 baudrate = 1;
+  required uint32 timeout = 2;
+  required uint32 device = 3;
+  required uint32 flags = 4;
+  required uint32 count = 5;
+  repeated uint32 data = 6;
+}
+// id: 127 GPS_RTK
+message GPS_RTK {
+  required uint32 time_last_baseline_ms = 1;
+  required uint32 tow = 2;
+  required int32 baseline_a_mm = 3;
+  required int32 baseline_b_mm = 4;
+  required int32 baseline_c_mm = 5;
+  required uint32 accuracy = 6;
+  required int32 iar_num_hypotheses = 7;
+  required uint32 wn = 8;
+  required uint32 rtk_receiver_id = 9;
+  required uint32 rtk_health = 10;
+  required uint32 rtk_rate = 11;
+  required uint32 nsats = 12;
+  required uint32 baseline_coords_type = 13;
+}
+// id: 128 GPS2_RTK
+message GPS2_RTK {
+  required uint32 time_last_baseline_ms = 1;
+  required uint32 tow = 2;
+  required int32 baseline_a_mm = 3;
+  required int32 baseline_b_mm = 4;
+  required int32 baseline_c_mm = 5;
+  required uint32 accuracy = 6;
+  required int32 iar_num_hypotheses = 7;
+  required uint32 wn = 8;
+  required uint32 rtk_receiver_id = 9;
+  required uint32 rtk_health = 10;
+  required uint32 rtk_rate = 11;
+  required uint32 nsats = 12;
+  required uint32 baseline_coords_type = 13;
+}
+// id: 129 SCALED_IMU3
+message SCALED_IMU3 {
+  required uint32 time_boot_ms = 1;
+  required int32 xacc = 2;
+  required int32 yacc = 3;
+  required int32 zacc = 4;
+  required int32 xgyro = 5;
+  required int32 ygyro = 6;
+  required int32 zgyro = 7;
+  required int32 xmag = 8;
+  required int32 ymag = 9;
+  required int32 zmag = 10;
+}
+// id: 130 DATA_TRANSMISSION_HANDSHAKE
+message DATA_TRANSMISSION_HANDSHAKE {
+  required uint32 size = 1;
+  required uint32 width = 2;
+  required uint32 height = 3;
+  required uint32 packets = 4;
+  required uint32 mavtype = 5;
+  required uint32 payload = 6;
+  required uint32 jpg_quality = 7;
+}
+// id: 131 ENCAPSULATED_DATA
+message ENCAPSULATED_DATA {
+  required uint32 seqnr = 1;
+  repeated uint32 data = 2;
+}
+// id: 132 DISTANCE_SENSOR
+message DISTANCE_SENSOR {
+  required uint32 time_boot_ms = 1;
+  required uint32 min_distance = 2;
+  required uint32 max_distance = 3;
+  required uint32 current_distance = 4;
+  required uint32 mavtype = 5;
+  required uint32 id = 6;
+  required uint32 orientation = 7;
+  required uint32 covariance = 8;
+}
+// id: 133 TERRAIN_REQUEST
+message TERRAIN_REQUEST {
+  required uint64 mask = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required uint32 grid_spacing = 4;
+}
+// id: 134 TERRAIN_DATA
+message TERRAIN_DATA {
+  required int32 lat = 1;
+  required int32 lon = 2;
+  required uint32 grid_spacing = 3;
+  repeated int32 data = 4;
+  required uint32 gridbit = 5;
+}
+// id: 135 TERRAIN_CHECK
+message TERRAIN_CHECK {
+  required int32 lat = 1;
+  required int32 lon = 2;
+}
+// id: 136 TERRAIN_REPORT
+message TERRAIN_REPORT {
+  required int32 lat = 1;
+  required int32 lon = 2;
+  required float terrain_height = 3;
+  required float current_height = 4;
+  required uint32 spacing = 5;
+  required uint32 pending = 6;
+  required uint32 loaded = 7;
+}
+// id: 137 SCALED_PRESSURE2
+message SCALED_PRESSURE2 {
+  required uint32 time_boot_ms = 1;
+  required float press_abs = 2;
+  required float press_diff = 3;
+  required int32 temperature = 4;
+}
+// id: 138 ATT_POS_MOCAP
+message ATT_POS_MOCAP {
+  required uint64 time_usec = 1;
+  repeated float q = 2;
+  required float x = 3;
+  required float y = 4;
+  required float z = 5;
+}
+// id: 139 SET_ACTUATOR_CONTROL_TARGET
+message SET_ACTUATOR_CONTROL_TARGET {
+  required uint64 time_usec = 1;
+  repeated float controls = 2;
+  required uint32 group_mlx = 3;
+  required uint32 target_system = 4;
+  required uint32 target_component = 5;
+}
+// id: 140 ACTUATOR_CONTROL_TARGET
+message ACTUATOR_CONTROL_TARGET {
+  required uint64 time_usec = 1;
+  repeated float controls = 2;
+  required uint32 group_mlx = 3;
+}
+// id: 141 ALTITUDE
+message ALTITUDE {
+  required uint64 time_usec = 1;
+  required float altitude_monotonic = 2;
+  required float altitude_amsl = 3;
+  required float altitude_local = 4;
+  required float altitude_relative = 5;
+  required float altitude_terrain = 6;
+  required float bottom_clearance = 7;
+}
+// id: 142 RESOURCE_REQUEST
+message RESOURCE_REQUEST {
+  required uint32 request_id = 1;
+  required uint32 uri_type = 2;
+  repeated uint32 uri = 3;
+  required uint32 transfer_type = 4;
+  repeated uint32 storage = 5;
+}
+// id: 143 SCALED_PRESSURE3
+message SCALED_PRESSURE3 {
+  required uint32 time_boot_ms = 1;
+  required float press_abs = 2;
+  required float press_diff = 3;
+  required int32 temperature = 4;
+}
+// id: 146 CONTROL_SYSTEM_STATE
+message CONTROL_SYSTEM_STATE {
+  required uint64 time_usec = 1;
+  required float x_acc = 2;
+  required float y_acc = 3;
+  required float z_acc = 4;
+  required float x_vel = 5;
+  required float y_vel = 6;
+  required float z_vel = 7;
+  required float x_pos = 8;
+  required float y_pos = 9;
+  required float z_pos = 10;
+  required float airspeed = 11;
+  repeated float vel_variance = 12;
+  repeated float pos_variance = 13;
+  repeated float q = 14;
+  required float roll_rate = 15;
+  required float pitch_rate = 16;
+  required float yaw_rate = 17;
+}
+// id: 147 BATTERY_STATUS
+message BATTERY_STATUS {
+  required int32 current_consumed = 1;
+  required int32 energy_consumed = 2;
+  required int32 temperature = 3;
+  repeated uint32 voltages = 4;
+  required int32 current_battery = 5;
+  required uint32 id = 6;
+  required uint32 battery_function = 7;
+  required uint32 mavtype = 8;
+  required int32 battery_remaining = 9;
+}
+// id: 148 AUTOPILOT_VERSION
+message AUTOPILOT_VERSION {
+  required uint64 capabilities = 1;
+  required uint64 uid = 2;
+  required uint32 flight_sw_version = 3;
+  required uint32 middleware_sw_version = 4;
+  required uint32 os_sw_version = 5;
+  required uint32 board_version = 6;
+  required uint32 vendor_id = 7;
+  required uint32 product_id = 8;
+  repeated uint32 flight_custom_version = 9;
+  repeated uint32 middleware_custom_version = 10;
+  repeated uint32 os_custom_version = 11;
+}
+// id: 149 LANDING_TARGET
+message LANDING_TARGET {
+  required uint64 time_usec = 1;
+  required float angle_x = 2;
+  required float angle_y = 3;
+  required float distance = 4;
+  required float size_x = 5;
+  required float size_y = 6;
+  required uint32 target_num = 7;
+  required uint32 frame = 8;
+}
+// id: 241 VIBRATION
+message VIBRATION {
+  required uint64 time_usec = 1;
+  required float vibration_x = 2;
+  required float vibration_y = 3;
+  required float vibration_z = 4;
+  required uint32 clipping_0 = 5;
+  required uint32 clipping_1 = 6;
+  required uint32 clipping_2 = 7;
+}
+// id: 242 HOME_POSITION
+message HOME_POSITION {
+  required int32 latitude = 1;
+  required int32 longitude = 2;
+  required int32 altitude = 3;
+  required float x = 4;
+  required float y = 5;
+  required float z = 6;
+  repeated float q = 7;
+  required float approach_x = 8;
+  required float approach_y = 9;
+  required float approach_z = 10;
+}
+// id: 243 SET_HOME_POSITION
+message SET_HOME_POSITION {
+  required int32 latitude = 1;
+  required int32 longitude = 2;
+  required int32 altitude = 3;
+  required float x = 4;
+  required float y = 5;
+  required float z = 6;
+  repeated float q = 7;
+  required float approach_x = 8;
+  required float approach_y = 9;
+  required float approach_z = 10;
+  required uint32 target_system = 11;
+}
+// id: 244 MESSAGE_INTERVAL
+message MESSAGE_INTERVAL {
+  required int32 interval_us = 1;
+  required uint32 message_id = 2;
+}
+// id: 245 EXTENDED_SYS_STATE
+message EXTENDED_SYS_STATE {
+  required uint32 vtol_state = 1;
+  required uint32 landed_state = 2;
+}
+// id: 246 ADSB_VEHICLE
+message ADSB_VEHICLE {
+  required uint32 ICAO_address = 1;
+  required int32 lat = 2;
+  required int32 lon = 3;
+  required float altitude = 4;
+  required float hor_velocity = 5;
+  required float ver_velocity = 6;
+  required uint32 heading = 7;
+  required uint32 flags = 8;
+  required uint32 squawk = 9;
+  required uint32 altitude_type = 10;
+  repeated uint32 callsign = 11;
+  required uint32 emitter_type = 12;
+  required uint32 tslc = 13;
+}
+// id: 248 V2_EXTENSION
+message V2_EXTENSION {
+  required uint32 message_type = 1;
+  required uint32 target_network = 2;
+  required uint32 target_system = 3;
+  required uint32 target_component = 4;
+  repeated uint32 payload = 5;
+}
+// id: 249 MEMORY_VECT
+message MEMORY_VECT {
+  required uint32 address = 1;
+  required uint32 ver = 2;
+  required uint32 mavtype = 3;
+  repeated int32 value = 4;
+}
+// id: 250 DEBUG_VECT
+message DEBUG_VECT {
+  required uint64 time_usec = 1;
+  required float x = 2;
+  required float y = 3;
+  required float z = 4;
+  repeated uint32 name = 5;
+}
+// id: 251 NAMED_VALUE_FLOAT
+message NAMED_VALUE_FLOAT {
+  required uint32 time_boot_ms = 1;
+  required float value = 2;
+  repeated uint32 name = 3;
+}
+// id: 252 NAMED_VALUE_INT
+message NAMED_VALUE_INT {
+  required uint32 time_boot_ms = 1;
+  required int32 value = 2;
+  repeated uint32 name = 3;
+}
+// id: 253 STATUSTEXT
+message STATUSTEXT {
+  required uint32 severity = 1;
+  repeated uint32 text = 2;
+}
+// id: 254 DEBUG
+message DEBUG {
+  required uint32 time_boot_ms = 1;
+  required float value = 2;
+  required uint32 ind = 3;
+}
+message MavlinkMessage {
+  oneof msg_set {
+    HEARTBEAT heartbeat = 1;
+    SYS_STATUS sys_status = 2;
+    SYSTEM_TIME system_time = 3;
+    PING ping = 4;
+    CHANGE_OPERATOR_CONTROL change_operator_control = 5;
+    CHANGE_OPERATOR_CONTROL_ACK change_operator_control_ack = 6;
+    AUTH_KEY auth_key = 7;
+    SET_MODE set_mode = 8;
+    PARAM_REQUEST_READ param_request_read = 9;
+    PARAM_REQUEST_LIST param_request_list = 10;
+    PARAM_VALUE param_value = 11;
+    PARAM_SET param_set = 12;
+    GPS_RAW_INT gps_raw_int = 13;
+    GPS_STATUS gps_status = 14;
+    SCALED_IMU scaled_imu = 15;
+    RAW_IMU raw_imu = 16;
+    RAW_PRESSURE raw_pressure = 17;
+    SCALED_PRESSURE scaled_pressure = 18;
+    ATTITUDE attitude = 19;
+    ATTITUDE_QUATERNION attitude_quaternion = 20;
+    LOCAL_POSITION_NED local_position_ned = 21;
+    GLOBAL_POSITION_INT global_position_int = 22;
+    RC_CHANNELS_SCALED rc_channels_scaled = 23;
+    RC_CHANNELS_RAW rc_channels_raw = 24;
+    SERVO_OUTPUT_RAW servo_output_raw = 25;
+    MISSION_REQUEST_PARTIAL_LIST mission_request_partial_list = 26;
+    MISSION_WRITE_PARTIAL_LIST mission_write_partial_list = 27;
+    MISSION_ITEM mission_item = 28;
+    MISSION_REQUEST mission_request = 29;
+    MISSION_SET_CURRENT mission_set_current = 30;
+    MISSION_CURRENT mission_current = 31;
+    MISSION_REQUEST_LIST mission_request_list = 32;
+    MISSION_COUNT mission_count = 33;
+    MISSION_CLEAR_ALL mission_clear_all = 34;
+    MISSION_ITEM_REACHED mission_item_reached = 35;
+    MISSION_ACK mission_ack = 36;
+    SET_GPS_GLOBAL_ORIGIN set_gps_global_origin = 37;
+    GPS_GLOBAL_ORIGIN gps_global_origin = 38;
+    PARAM_MAP_RC param_map_rc = 39;
+    SAFETY_SET_ALLOWED_AREA safety_set_allowed_area = 40;
+    SAFETY_ALLOWED_AREA safety_allowed_area = 41;
+    ATTITUDE_QUATERNION_COV attitude_quaternion_cov = 42;
+    NAV_CONTROLLER_OUTPUT nav_controller_output = 43;
+    GLOBAL_POSITION_INT_COV global_position_int_cov = 44;
+    LOCAL_POSITION_NED_COV local_position_ned_cov = 45;
+    RC_CHANNELS rc_channels = 46;
+    REQUEST_DATA_STREAM request_data_stream = 47;
+    DATA_STREAM data_stream = 48;
+    MANUAL_CONTROL manual_control = 49;
+    RC_CHANNELS_OVERRIDE rc_channels_override = 50;
+    MISSION_ITEM_INT mission_item_int = 51;
+    VFR_HUD vfr_hud = 52;
+    COMMAND_INT command_int = 53;
+    COMMAND_LONG command_long = 54;
+    COMMAND_ACK command_ack = 55;
+    MANUAL_SETPOINT manual_setpoint = 56;
+    SET_ATTITUDE_TARGET set_attitude_target = 57;
+    ATTITUDE_TARGET attitude_target = 58;
+    SET_POSITION_TARGET_LOCAL_NED set_position_target_local_ned = 59;
+    POSITION_TARGET_LOCAL_NED position_target_local_ned = 60;
+    SET_POSITION_TARGET_GLOBAL_INT set_position_target_global_int = 61;
+    POSITION_TARGET_GLOBAL_INT position_target_global_int = 62;
+    LOCAL_POSITION_NED_SYSTEM_GLOBAL_OFFSET
+        local_position_ned_system_global_offset = 63;
+    HIL_STATE hil_state = 64;
+    HIL_CONTROLS hil_controls = 65;
+    HIL_RC_INPUTS_RAW hil_rc_inputs_raw = 66;
+    OPTICAL_FLOW optical_flow = 67;
+    GLOBAL_VISION_POSITION_ESTIMATE global_vision_position_estimate = 68;
+    VISION_POSITION_ESTIMATE vision_position_estimate = 69;
+    VISION_SPEED_ESTIMATE vision_speed_estimate = 70;
+    VICON_POSITION_ESTIMATE vicon_position_estimate = 71;
+    HIGHRES_IMU highres_imu = 72;
+    OPTICAL_FLOW_RAD optical_flow_rad = 73;
+    HIL_SENSOR hil_sensor = 74;
+    SIM_STATE sim_state = 75;
+    RADIO_STATUS radio_status = 76;
+    FILE_TRANSFER_PROTOCOL file_transfer_protocol = 77;
+    TIMESYNC timesync = 78;
+    CAMERA_TRIGGER camera_trigger = 79;
+    HIL_GPS hil_gps = 80;
+    HIL_OPTICAL_FLOW hil_optical_flow = 81;
+    HIL_STATE_QUATERNION hil_state_quaternion = 82;
+    SCALED_IMU2 scaled_imu2 = 83;
+    LOG_REQUEST_LIST log_request_list = 84;
+    LOG_ENTRY log_entry = 85;
+    LOG_REQUEST_DATA log_request_data = 86;
+    LOG_DATA log_data = 87;
+    LOG_ERASE log_erase = 88;
+    LOG_REQUEST_END log_request_end = 89;
+    GPS_INJECT_DATA gps_inject_data = 90;
+    GPS2_RAW gps2_raw = 91;
+    POWER_STATUS power_status = 92;
+    SERIAL_CONTROL serial_control = 93;
+    GPS_RTK gps_rtk = 94;
+    GPS2_RTK gps2_rtk = 95;
+    SCALED_IMU3 scaled_imu3 = 96;
+    DATA_TRANSMISSION_HANDSHAKE data_transmission_handshake = 97;
+    ENCAPSULATED_DATA encapsulated_data = 98;
+    DISTANCE_SENSOR distance_sensor = 99;
+    TERRAIN_REQUEST terrain_request = 100;
+    TERRAIN_DATA terrain_data = 101;
+    TERRAIN_CHECK terrain_check = 102;
+    TERRAIN_REPORT terrain_report = 103;
+    SCALED_PRESSURE2 scaled_pressure2 = 104;
+    ATT_POS_MOCAP att_pos_mocap = 105;
+    SET_ACTUATOR_CONTROL_TARGET set_actuator_control_target = 106;
+    ACTUATOR_CONTROL_TARGET actuator_control_target = 107;
+    ALTITUDE altitude = 108;
+    RESOURCE_REQUEST resource_request = 109;
+    SCALED_PRESSURE3 scaled_pressure3 = 110;
+    CONTROL_SYSTEM_STATE control_system_state = 111;
+    BATTERY_STATUS battery_status = 112;
+    AUTOPILOT_VERSION autopilot_version = 113;
+    LANDING_TARGET landing_target = 114;
+    VIBRATION vibration = 115;
+    HOME_POSITION home_position = 116;
+    SET_HOME_POSITION set_home_position = 117;
+    MESSAGE_INTERVAL message_interval = 118;
+    EXTENDED_SYS_STATE extended_sys_state = 119;
+    ADSB_VEHICLE adsb_vehicle = 120;
+    V2_EXTENSION v2_extension = 121;
+    MEMORY_VECT memory_vect = 122;
+    DEBUG_VECT debug_vect = 123;
+    NAMED_VALUE_FLOAT named_value_float = 124;
+    NAMED_VALUE_INT named_value_int = 125;
+    STATUSTEXT statustext = 126;
+    DEBUG debug = 127;
+  }
+}
