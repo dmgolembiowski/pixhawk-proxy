@@ -25,22 +25,22 @@ fn alt_test() {
     alt.altitude_relative=0.012936121;
     alt.altitude_terrain= std::f32::NAN;
     alt.bottom_clearance = std::f32::NAN;
-    
+
     println!("original msg={:?}",alt);
-    
+
     let stream = serde_json::to_string(&alt).unwrap();
     println!("json msg={}",stream);
-    
+
     /*
     // Not supported right now
     let new_alt: mavlink_common::Altitude = serde_json::from_str(&stream).unwrap();
     */
-    
+
     let mut buf = Vec::new();
     buf.reserve(alt.encoded_len());
     alt.encode(&mut buf).unwrap();
     println!("serialized len = {}", buf.len());
-    
+
     let new_msg = mavlink_common::Altitude::decode(&mut Cursor::new(buf));
     println!("decoded msg = {:?}", new_msg);
 }
@@ -62,31 +62,30 @@ fn main() {
     msg.errors_count3 = 0;
     msg.errors_count4 = 0;
     msg.battery_remaining = 100;
-    println!("original msg={:?}",msg);
+    println!("original msg={:?}\n",msg);
+
     /*
     let mut mavmsg = mavlink_common::MavlinkMessage::default();
-    mavmsg.sys_status = Some(msg);
+    mavmsg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::Sysstatus(msg));
     
     let stream = serde_json::to_string(&mavmsg).unwrap();
-    println!("json msg={}",stream);
+    println!("json msg={}\n",stream);
     
     let mut buf = Vec::new();
     buf.reserve(mavmsg.encoded_len());
     mavmsg.encode(&mut buf).unwrap();
-    println!("serialized len = {}", buf.len());
+    println!("serialized len = {}\n", buf.len());
+    
+    let msg2: mavlink_common::MavlinkMessage = serde_json::from_str(&stream).unwrap();
+    println!("msg2={:?}\n",msg2);
     */
-    
-    let stream = serde_json::to_string(&msg).unwrap();
-    println!("json msg={}",stream);
-    
+
     let v = serialize_msg(&msg);
     println!("serialized len = {}", v.len());
-    
+
     let new_msg = deserialize_msg(&v).unwrap();
     println!("decoded msg={:?}",new_msg);
-    
-    
-    
+
 }
 
 pub fn serialize_msg(msg: &mavlink_common::SysStatus) -> Vec<u8> {

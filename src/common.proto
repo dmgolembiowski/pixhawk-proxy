@@ -43,7 +43,7 @@ message ChangeOperatorControl {
   required uint32 target_system = 1;
   required uint32 control_request = 2;
   required uint32 version = 3;
-  repeated bytes passkey = 4;
+  repeated uint32 passkey = 4;
 }
 // id: 6 ChangeOperatorControlAck
 message ChangeOperatorControlAck {
@@ -52,7 +52,7 @@ message ChangeOperatorControlAck {
   required uint32 ack = 3;
 }
 // id: 7 AuthKey
-message AuthKey { repeated bytes key = 1; }
+message AuthKey { repeated uint32 key = 1; }
 // id: 11 SetMode
 message SetMode {
   required uint32 custom_mode = 1;
@@ -64,7 +64,7 @@ message ParamRequestRead {
   required int32 param_index = 1;
   required uint32 target_system = 2;
   required uint32 target_component = 3;
-  repeated bytes param_id = 4;
+  repeated uint32 param_id = 4;
 }
 // id: 21 ParamRequestList
 message ParamRequestList {
@@ -76,7 +76,7 @@ message ParamValue {
   required float param_value = 1;
   required uint32 param_count = 2;
   required uint32 param_index = 3;
-  repeated bytes param_id = 4;
+  repeated uint32 param_id = 4;
   required uint32 param_type = 5;
 }
 // id: 23 ParamSet
@@ -84,7 +84,7 @@ message ParamSet {
   required float param_value = 1;
   required uint32 target_system = 2;
   required uint32 target_component = 3;
-  repeated bytes param_id = 4;
+  repeated uint32 param_id = 4;
   required uint32 param_type = 5;
 }
 // id: 24 GpsRawInt
@@ -103,11 +103,11 @@ message GpsRawInt {
 // id: 25 GpsStatus
 message GpsStatus {
   required uint32 satellites_visible = 1;
-  repeated bytes satellite_prn = 2;
-  repeated bytes satellite_used = 3;
-  repeated bytes satellite_elevation = 4;
-  repeated bytes satellite_azimuth = 5;
-  repeated bytes satellite_snr = 6;
+  repeated uint32 satellite_prn = 2;
+  repeated uint32 satellite_used = 3;
+  repeated uint32 satellite_elevation = 4;
+  repeated uint32 satellite_azimuth = 5;
+  repeated uint32 satellite_snr = 6;
 }
 // id: 26 ScaledImu
 message ScaledImu {
@@ -325,7 +325,7 @@ message ParamMapRc {
   required int32 param_index = 5;
   required uint32 target_system = 6;
   required uint32 target_component = 7;
-  repeated bytes param_id = 8;
+  repeated uint32 param_id = 8;
   required uint32 parameter_rc_channel_index = 9;
 }
 // id: 54 SafetySetAllowedArea
@@ -823,7 +823,7 @@ message FileTransferProtocol {
   required uint32 target_network = 1;
   required uint32 target_system = 2;
   required uint32 target_component = 3;
-  repeated bytes payload = 4;
+  repeated uint32 payload = 4;
 }
 // id: 111 Timesync
 message Timesync {
@@ -926,7 +926,7 @@ message LogData {
   required uint32 ofs = 1;
   required uint32 id = 2;
   required uint32 count = 3;
-  repeated bytes data = 4;
+  repeated uint32 data = 4;
 }
 // id: 121 LogErase
 message LogErase {
@@ -943,7 +943,7 @@ message GpsInjectData {
   required uint32 target_system = 1;
   required uint32 target_component = 2;
   required uint32 len = 3;
-  repeated bytes data = 4;
+  repeated uint32 data = 4;
 }
 // id: 124 Gps2Raw
 message Gps2Raw {
@@ -973,7 +973,7 @@ message SerialControl {
   required uint32 device = 3;
   required uint32 flags = 4;
   required uint32 count = 5;
-  repeated bytes data = 6;
+  repeated uint32 data = 6;
 }
 // id: 127 GpsRtk
 message GpsRtk {
@@ -1033,7 +1033,7 @@ message DataTransmissionHandshake {
 // id: 131 EncapsulatedData
 message EncapsulatedData {
   required uint32 seqnr = 1;
-  repeated bytes data = 2;
+  repeated uint32 data = 2;
 }
 // id: 132 DistanceSensor
 message DistanceSensor {
@@ -1119,9 +1119,9 @@ message Altitude {
 message ResourceRequest {
   required uint32 request_id = 1;
   required uint32 uri_type = 2;
-  repeated bytes uri = 3;
+  repeated uint32 uri = 3;
   required uint32 transfer_type = 4;
-  repeated bytes storage = 5;
+  repeated uint32 storage = 5;
 }
 // id: 143 ScaledPressure3
 message ScaledPressure3 {
@@ -1172,9 +1172,9 @@ message AutopilotVersion {
   required uint32 board_version = 6;
   required uint32 vendor_id = 7;
   required uint32 product_id = 8;
-  repeated bytes flight_custom_version = 9;
-  repeated bytes middleware_custom_version = 10;
-  repeated bytes os_custom_version = 11;
+  repeated uint32 flight_custom_version = 9;
+  repeated uint32 middleware_custom_version = 10;
+  repeated uint32 os_custom_version = 11;
 }
 // id: 149 LandingTarget
 message LandingTarget {
@@ -1246,7 +1246,7 @@ message AdsbVehicle {
   required uint32 flags = 8;
   required uint32 squawk = 9;
   required uint32 altitude_type = 10;
-  repeated bytes callsign = 11;
+  repeated uint32 callsign = 11;
   required uint32 emitter_type = 12;
   required uint32 tslc = 13;
 }
@@ -1256,14 +1256,14 @@ message V2Extension {
   required uint32 target_network = 2;
   required uint32 target_system = 3;
   required uint32 target_component = 4;
-  repeated bytes payload = 5;
+  repeated uint32 payload = 5;
 }
 // id: 249 MemoryVect
 message MemoryVect {
   required uint32 address = 1;
   required uint32 ver = 2;
   required uint32 mavtype = 3;
-  repeated bytes value = 4;
+  repeated int32 value = 4;
 }
 // id: 250 DebugVect
 message DebugVect {
@@ -1271,24 +1271,24 @@ message DebugVect {
   required float x = 2;
   required float y = 3;
   required float z = 4;
-  repeated bytes name = 5;
+  repeated uint32 name = 5;
 }
 // id: 251 NamedValueFloat
 message NamedValueFloat {
   required uint32 time_boot_ms = 1;
   required float value = 2;
-  repeated bytes name = 3;
+  repeated uint32 name = 3;
 }
 // id: 252 NamedValueInt
 message NamedValueInt {
   required uint32 time_boot_ms = 1;
   required int32 value = 2;
-  repeated bytes name = 3;
+  repeated uint32 name = 3;
 }
 // id: 253 Statustext
 message Statustext {
   required uint32 severity = 1;
-  repeated bytes text = 2;
+  repeated uint32 text = 2;
 }
 // id: 254 Debug
 message Debug {
