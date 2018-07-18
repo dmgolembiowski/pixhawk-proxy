@@ -8,7 +8,7 @@ build = "build.rs"
 prost-build = "0.4"
 
 [dependencies]
-lmcp = { path = "../rust-lmcp" }
+lmcp = { path = "../UxAS-generated-lmcp" }
 bytes = "0.4"
 prost = "0.4"
 prost-derive = "0.4"
