@@ -20,6 +20,7 @@ extern crate range_check;
 extern crate zmq;
 
 use prost::Message;
+use std::collections::VecDeque;
 use std::io::Cursor;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
@@ -29,6 +30,8 @@ use std::thread;
 pub mod mavlink_common {
     include!(concat!(env!("OUT_DIR"), "/mavlink.common.rs"));
 }
+
+use lmcp::Message as LmcpMessage;
 
 mod pixhawk_proxy;
 use pixhawk_proxy::PixhawkProxy;
@@ -69,16 +72,25 @@ fn main() {
                     let stream = subscriber.recv_bytes(0).unwrap();
                     let msg =
                         mavlink_common::MavlinkMessage::decode(&mut Cursor::new(stream)).unwrap();
+                    let mut lmcp_msgs_to_send = VecDeque::new();
+                    let mut mavlink_msgs_to_send = VecDeque::new();
                     match proxy.lock() {
                         Ok(mut mav_proxy) => {
-                            mav_proxy.handle_proto_msg(msg);
+                            let (mut lmcp_msgs, mut mavlink_msgs) =
+                                mav_proxy.handle_mavlink_msg(msg);
+                            lmcp_msgs_to_send.append(&mut lmcp_msgs);
+                            mavlink_msgs_to_send.append(&mut mavlink_msgs);
                         }
                         Err(e) => {
                             println!("Error locking proxy: {}", e);
                         }
                     }
-                    send_to_lmcp.send("test lmcp".as_bytes()).unwrap();
-                    send_to_mavlink.send("test mavlink".as_bytes()).unwrap();
+                    for mavlink_msg in mavlink_msgs_to_send {
+                        send_to_mavlink.send(mavlink_msg).unwrap();
+                    }
+                    for lmcp_msg in lmcp_msgs_to_send {
+                        send_to_lmcp.send(lmcp_msg).unwrap();
+                    }
                 }
             }),
     );
@@ -104,9 +116,27 @@ fn main() {
                 move || loop {
                     let stream = subscriber.recv_bytes(0).unwrap();
                     println!("Received {} bytes", stream.len());
-                    // TODO: parse LMCP message as needed
-                    send_to_lmcp.send("test lmcp".as_bytes()).unwrap();
-                    send_to_mavlink.send("test mavlink".as_bytes()).unwrap();
+                    if let Some(msg) = LmcpMessage::deser(&stream).unwrap() {
+                        let mut lmcp_msgs_to_send = VecDeque::new();
+                        let mut mavlink_msgs_to_send = VecDeque::new();
+                        match proxy.lock() {
+                            Ok(mut mav_proxy) => {
+                                let (mut lmcp_msgs, mut mavlink_msgs) =
+                                    mav_proxy.handle_lmcp_msg(msg);
+                                lmcp_msgs_to_send.append(&mut lmcp_msgs);
+                                mavlink_msgs_to_send.append(&mut mavlink_msgs);
+                            }
+                            Err(e) => {
+                                println!("Error locking proxy: {}", e);
+                            }
+                        }
+                        for mavlink_msg in mavlink_msgs_to_send {
+                            send_to_mavlink.send(mavlink_msg).unwrap();
+                        }
+                        for lmcp_msg in lmcp_msgs_to_send {
+                            send_to_lmcp.send(lmcp_msg).unwrap();
+                        }
+                    }
                 }
             }),
     );
@@ -124,11 +154,15 @@ fn main() {
                     }
                 }
 
+                // allocate buffer
+                let mut buf = vec![0; 1024];
+
                 move || loop {
                     match lmcp_rx.recv() {
-                        Ok(data) => {
-                            // send data
-                            publisher.send(&data, 0).unwrap(); // send buffer with 0 flags
+                        Ok(msg) => {
+                            // serialize message and send data
+                            let msg_len = msg.ser(buf.as_mut_slice()).unwrap();
+                            publisher.send(&buf[0..msg_len], 0).unwrap(); // send buffer with 0 flags
                         }
                         Err(e) => {
                             println!("Error occured: {}", e);
@@ -153,9 +187,12 @@ fn main() {
 
                 move || loop {
                     match mavlink_rx.recv() {
-                        Ok(data) => {
-                            // send data
-                            publisher.send(&data, 0).unwrap(); // send buffer with 0 flags
+                        Ok(msg) => {
+                            // encode message into a buffer and send data
+                            let mut buf = Vec::new();
+                            buf.reserve(msg.encoded_len());
+                            msg.encode(&mut buf).unwrap();
+                            publisher.send(&buf, 0).unwrap(); // send buffer with 0 flags
                         }
                         Err(e) => {
                             println!("Error occured: {}", e);
@@ -165,6 +202,7 @@ fn main() {
             }),
     );
 
+    // wait for threads to finish
     for handle in handles {
         handle.unwrap().join().unwrap();
     }

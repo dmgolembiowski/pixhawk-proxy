@@ -5,7 +5,9 @@ use lmcp::afrl::cmasi::air_vehicle_state::AirVehicleState;
 use lmcp::afrl::cmasi::air_vehicle_state::AirVehicleStateT;
 use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 use lmcp::afrl::cmasi::entity_state::EntityStateT;
-//use lmcp::Message as LmcpMessage;
+use lmcp::Message as LmcpMessage;
+
+use std::collections::VecDeque;
 
 // To check ranges for sending bytes to the autopilot (u32/i32 -> u8/i8 conversion)
 use range_check::Within;
@@ -70,9 +72,15 @@ impl Default for PixhawkProxy {
 }
 
 impl PixhawkProxy {
+    /// handle incoming messages, does nothing for now
+    pub fn handle_lmcp_msg(&mut self, _lmcp_msg: LmcpMessage) -> (VecDeque<LmcpMessage>, VecDeque<mavlink_common::MavlinkMessage>) {
+        
+        (VecDeque::new(), VecDeque::new())
+    }
+    
     /// Parse an incoming Mavlink proto message and if it contains relevant data,
     /// update the AirVehicleState struct
-    pub fn handle_proto_msg(&mut self, proto_msg: mavlink_common::MavlinkMessage) {
+    pub fn handle_mavlink_msg(&mut self, proto_msg: mavlink_common::MavlinkMessage) -> (VecDeque<LmcpMessage>, VecDeque<mavlink_common::MavlinkMessage>) {
         if let Some(msg) = proto_msg.msg_set {
             use mavlink_common::mavlink_message::MsgSet::*;
             match msg {
@@ -149,5 +157,6 @@ impl PixhawkProxy {
                 _ => {}
             }
         }
+        (VecDeque::new(), VecDeque::new())
     }
 }
