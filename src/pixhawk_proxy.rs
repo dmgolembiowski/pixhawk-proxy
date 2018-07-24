@@ -73,14 +73,25 @@ impl Default for PixhawkProxy {
 
 impl PixhawkProxy {
     /// handle incoming messages, does nothing for now
-    pub fn handle_lmcp_msg(&mut self, _lmcp_msg: LmcpMessage) -> (VecDeque<LmcpMessage>, VecDeque<mavlink_common::MavlinkMessage>) {
-        
+    pub fn handle_lmcp_msg(
+        &mut self,
+        _lmcp_msg: LmcpMessage,
+    ) -> (
+        VecDeque<LmcpMessage>,
+        VecDeque<mavlink_common::MavlinkMessage>,
+    ) {
         (VecDeque::new(), VecDeque::new())
     }
-    
+
     /// Parse an incoming Mavlink proto message and if it contains relevant data,
     /// update the AirVehicleState struct
-    pub fn handle_mavlink_msg(&mut self, proto_msg: mavlink_common::MavlinkMessage) -> (VecDeque<LmcpMessage>, VecDeque<mavlink_common::MavlinkMessage>) {
+    pub fn handle_mavlink_msg(
+        &mut self,
+        proto_msg: mavlink_common::MavlinkMessage,
+    ) -> (
+        VecDeque<LmcpMessage>,
+        VecDeque<mavlink_common::MavlinkMessage>,
+    ) {
         if let Some(msg) = proto_msg.msg_set {
             use mavlink_common::mavlink_message::MsgSet::*;
             match msg {
@@ -159,4 +170,101 @@ impl PixhawkProxy {
         }
         (VecDeque::new(), VecDeque::new())
     }
+
+    /// The structure is:
+    /// (getSerialSentinelBeforePayloadSize() + std::to_string(data.size())
+    ///         + getSerialSentinelAfterPayloadSize() + data + getSerialSentinelBeforeChecksum()
+    ///         + std::to_string(calculateChecksum(data)) + getSerialSentinelAfterChecksum());
+    const BEFORE_PAYLOAD_SIZE: [u8; 8] = [43, 61, 43, 61, 43, 61, 43, 61]; // +=+=+=+=
+    const AFTER_PAYLOAD_SIZE: [u8; 8] = [35, 64, 35, 64, 35, 64, 35, 64]; // #@#@#@#@
+    const BEFORE_CHECKSUM: [u8; 8] = [33, 37, 33, 37, 33, 37, 33, 37]; // !%!%!%!%
+    const AFTER_CHECKSUM: [u8; 8] = [63, 94, 63, 94, 63, 94, 63, 94]; // ?^?^?^?^
+    const SENTINEL_LEN: usize = 8;
+    const NUM_AS_STRING_LEN: usize = 5;
+
+    /// 4*8 for sentinels, 5 bytes for a typical string value of checksum
+    /// 5 bytes for a typical string value of a payload length
+    const SENTINEL_OVERHEAD: usize = 4 * Self::SENTINEL_LEN + 2 * Self::NUM_AS_STRING_LEN;
+    
+    const SER_BUFFER_SIZE: usize = 1024;
+
+    pub fn desentinelize_msg(mut data: Vec<u8>) -> Option<Vec<u8>> {
+        // find first sentinel
+        if let Some(val) = data.get(0..Self::SENTINEL_LEN) {
+            if val != Self::BEFORE_PAYLOAD_SIZE {
+                return None;
+            }
+        } else {
+            return None;
+        }
+        // remove first sentinel
+        for _ in 0..Self::SENTINEL_LEN {
+            data.remove(0);
+        }
+        // get payload len
+        //let mut payload_len = vec![];
+        while true {
+            let byte = data.get(0);
+            //if 
+        }
+        
+        
+        return Some(vec![]);
+    }
+
+    pub fn sentinelize_lmcp_msg(msg: LmcpMessage) -> Option<Vec<u8>> {
+        let attributes = msg.subscription().to_string() + "$lmcp|" + msg.subscription() + "||0|0$";
+        let attributes = attributes.as_bytes();
+        
+        let mut data: Vec<u8> = Vec::with_capacity(Self::SER_BUFFER_SIZE);
+        data.extend_from_slice(attributes);
+
+        let mut msg_ser: Vec<u8> = vec![0; Self::SER_BUFFER_SIZE];
+        match msg.ser(msg_ser.as_mut_slice()) {
+            Ok(len) => {
+                data.truncate(len);
+            }
+            Err(e) => {
+                println!("sentinelize_lmcp_msg error: {:?}", e);
+                return None;
+            }
+        }
+        data.append(&mut msg_ser);
+
+        let checksum = Self::calculate_checksum(&data).to_string();
+        let checksum = checksum.as_bytes();
+        
+        let mut msg = Vec::with_capacity(data.len() + Self::SENTINEL_OVERHEAD);
+        msg.extend_from_slice(&Self::BEFORE_PAYLOAD_SIZE);
+        msg.extend_from_slice(&data.len().to_string().as_bytes());
+        msg.extend_from_slice(&Self::AFTER_PAYLOAD_SIZE);
+        msg.extend_from_slice(attributes);
+        msg.append(&mut data);
+        msg.extend_from_slice(&Self::BEFORE_CHECKSUM);
+        msg.extend_from_slice(&checksum);
+        msg.extend_from_slice(&Self::AFTER_CHECKSUM);
+        Some(msg)
+    }
+
+    /// Calculate checksum over data
+    fn calculate_checksum(data: &[u8]) -> u32 {
+        data.iter().fold(0, |mut sum, &x| {
+            sum += x as u32;
+            sum
+        })
+    }
 }
+
+/*
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_sentinelize() {
+        let data = "pixhawk-proxy".as_bytes();
+        let msg = PixhawkProxy::sentinelize_msg(data).unwrap();
+        println!("msg={:?}", msg);
+    }
+}
+*/

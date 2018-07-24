@@ -25,6 +25,7 @@ use std::io::Cursor;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::process::exit;
 
 // Include the `items` module, which is generated from items.proto.
 pub mod mavlink_common {
@@ -64,6 +65,7 @@ fn main() {
                     Ok(_) => {}
                     Err(e) => {
                         println!("Error: {}", e);
+                        exit(1);
                     }
                 }
                 assert!(subscriber.set_subscribe(filter.as_bytes()).is_ok());
@@ -96,6 +98,8 @@ fn main() {
     );
 
     // RX thread: receive LMCP messages
+    // 55560 is used by the UxAS bridge
+    // 5555 is used by the python example
     handles.push(
         thread::Builder::new()
             .name("th_lmcp_rx".to_string())
@@ -103,19 +107,39 @@ fn main() {
                 let _proxy = proxy.clone();
                 let send_to_lmcp = Sender::clone(&lmcp_tx);
                 let send_to_mavlink = Sender::clone(&mavlink_tx);
-                let subscriber = context.socket(zmq::SUB).unwrap();
+                //let subscriber = context.socket(zmq::SUB).unwrap();
+                let subscriber = context.socket(zmq::STREAM).unwrap();
                 let filter = "";
-                match subscriber.connect("tcp://127.0.0.1:55560") {
+                match subscriber.connect("tcp://127.0.0.1:5555") {
                     Ok(_) => {}
                     Err(e) => {
                         println!("Error: {}", e);
+                        exit(1);
+                    }
+                }/*
+                match subscriber.set_subscribe(filter.as_bytes()) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        exit(1);
                     }
                 }
-                assert!(subscriber.set_subscribe(filter.as_bytes()).is_ok());
+                */
 
                 move || loop {
+                    let mut mpart = subscriber.recv_multipart(0).unwrap();
+                    println!("Received {} msgs", mpart.len());
+                    assert_eq!(mpart.len(), 2); // assert we have only 2 messages
+                    let stream = mpart.pop(); // ~= mpart[1]
+
+                    // denetinelize
+                    
+                    /*
                     let stream = subscriber.recv_bytes(0).unwrap();
                     println!("Received {} bytes", stream.len());
+                    if stream.len() <= 5 {
+                        continue;
+                    }
                     if let Some(msg) = LmcpMessage::deser(&stream).unwrap() {
                         let mut lmcp_msgs_to_send = VecDeque::new();
                         let mut mavlink_msgs_to_send = VecDeque::new();
@@ -137,6 +161,7 @@ fn main() {
                             send_to_lmcp.send(lmcp_msg).unwrap();
                         }
                     }
+                    */
                 }
             }),
     );
@@ -147,10 +172,13 @@ fn main() {
             .name("th_lmcp_tx".to_string())
             .spawn({
                 let publisher = context.socket(zmq::PUB).unwrap();
+                //let publisher = context.socket(zmq::STREAM).unwrap();
                 match publisher.bind("tcp://127.0.0.1:55561") {
+                //match publisher.bind("tcp://127.0.0.1:5555") {
                     Ok(_) => {}
                     Err(e) => {
                         println!("Error: {}", e);
+                        exit(1);
                     }
                 }
 
@@ -182,6 +210,7 @@ fn main() {
                     Ok(_) => {}
                     Err(e) => {
                         println!("Error: {}", e);
+                        exit(1);
                     }
                 }
 
