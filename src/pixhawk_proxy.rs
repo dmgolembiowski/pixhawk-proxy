@@ -3,8 +3,16 @@ use std::time::{Duration, Instant};
 
 use lmcp::afrl::cmasi::air_vehicle_state::AirVehicleState;
 use lmcp::afrl::cmasi::air_vehicle_state::AirVehicleStateT;
-use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 use lmcp::afrl::cmasi::entity_state::EntityStateT;
+
+use lmcp::afrl::cmasi::air_vehicle_configuration::AirVehicleConfiguration;
+use lmcp::afrl::cmasi::air_vehicle_configuration::AirVehicleConfigurationT;
+use lmcp::afrl::cmasi::entity_configuration::EntityConfigurationT;
+
+use lmcp::afrl::cmasi::flight_profile::FlightProfile;
+use lmcp::afrl::cmasi::flight_profile::FlightProfileT;
+
+use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 use lmcp::Message as LmcpMessage;
 
 use std::collections::VecDeque;
@@ -54,29 +62,108 @@ impl BatteryStatus {
     }
 }
 
+/// Structure containing all necessary proxy data
 pub struct PixhawkProxy {
+    /// debug print on/off
+    debug: bool,
+    /// When did we receive the last HEARTBEAT message
     last_heartbeat: Instant,
+    /// Timestamp of the last received ATTITUDE message
     last_attitude_since_boot: Duration,
+    /// Timestamp of the last HIGHRES_IMU message
     last_highres_imu_since_boot: Duration,
-    pub current_air_vehicle_state: AirVehicleState,
+    /// BATTERY_STATUS message for book-keeping (and deriving `energy_rate`)
     battery_status: BatteryStatus,
+    /// The up-to-date AirVehicleState LMCP struct
+    current_air_vehicle_state: AirVehicleState,
+    /// AirVehicleConfiguration Message
+    air_vehicle_configuration: Option<AirVehicleConfiguration>,
 }
 
 impl Default for PixhawkProxy {
     fn default() -> PixhawkProxy {
         PixhawkProxy {
+            debug: false,
             last_heartbeat: Instant::now() - DEFAULT_KEEP_ALIVE_TIMEOUT,
             last_attitude_since_boot: Duration::new(0, 0),
             last_highres_imu_since_boot: Duration::new(0, 0),
             current_air_vehicle_state: AirVehicleState::default(),
             battery_status: BatteryStatus::new(),
+            air_vehicle_configuration: None,
         }
     }
 }
 
 impl PixhawkProxy {
+    /// For serialization of LMCP messages
     const DEFAULT_SER_BUFFER_SIZE: usize = 1024;
     
+    const AC_ID: i64 = 101;
+
+    pub fn set_debug(&mut self, debug: bool) {
+        self.debug = debug;
+    }
+
+    /// Attempt to decode a received strem
+    /// Expected format is
+    /// LmcpSentinelizer:
+    /// 	AddressedAttributedMessage:
+    ///			LmcpMessage
+    ///
+    /// TODO: make Sentinel configurable
+    pub fn decode_stream(stream: Vec<u8>) -> Option<LmcpMessage> {
+        match LmcpSentinelizer::parse_sentinelized_stream(stream) {
+            Ok(msg) => match AddressedAttributedMessage::deserialize(msg) {
+                Some(msg) => match LmcpMessage::deser(msg.get_payload()) {
+                    Ok(msg) => msg, // already wrappen in Option
+                    Err(e) => {
+                        println!("PixhawkProxy::decode_message: Error decoding stream: {:?}", e);
+                        None
+                    }
+                },
+                None => None,
+            },
+            Err(e) => {
+                println!("PixhawkProxy::decode_message: Error decoding stream: {:?}", e);
+                None
+            }
+        }
+    }
+
+    /// Attemp to encode an LMCP message
+    /// Wrap the message with AddressedAttributedMessage
+    /// and then LmcpSentinelizer so the resulting format is:
+    /// LmcpSentinelizer:
+    /// 	AddressedAttributedMessage:
+    ///			LmcpMessage
+    ///
+    /// TODO: make Sentinel/AttributedMessage configurable
+    /// Attributed message has extra header in the form of:
+    /// `afrl.cmasi.SessionStatus$lmcp|afrl.cmasi.SessionStatus||0|0$`
+    pub fn encode_message(msg: LmcpMessage) -> Option<Vec<u8>> {
+        let mut buf = vec![0; Self::DEFAULT_SER_BUFFER_SIZE];
+        let lmcp_type_name = msg.subscription();
+        match msg.ser(buf.as_mut_slice()) {
+            Ok(msg_len) => {
+                let v: Vec<_> = buf.drain(0..msg_len).collect();
+                let mut msg = AddressedAttributedMessage::default();
+                msg.set_address(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
+                msg.set_content_type("lmcp"); // type of the payload message
+                msg.set_descriptor(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
+                //msg.set_sender_group(val) // TODO: not needed?
+                msg.set_sender_entity_id("0");
+                msg.set_sender_service_id("0");
+                msg.set_payload(v); // serialized LMCP message
+                let stream = LmcpSentinelizer::create_sentinelized_stream(&msg.serialize());
+                Some(stream)
+            }
+            Err(e) => {
+                println!("PixhawkProxy::encode_message: Error encoding message: {:?}", e);
+                None
+            }
+        }
+    }
+
     /// handle incoming messages, does nothing for now
     pub fn handle_lmcp_msg(
         &mut self,
@@ -88,34 +175,6 @@ impl PixhawkProxy {
         (VecDeque::new(), VecDeque::new())
     }
 
-    pub fn decode_stream(stream: Vec<u8>) -> Option<LmcpMessage> {
-        // try remove sentinel
-        match LmcpSentinelizer::parse_sentinelized_stream(stream) {
-            Ok(msg1) => {
-                // try parsing attributed message
-                match AddressedAttributedMessage::deserialize(msg1) {
-                    Some(msg) => LmcpMessage::deser(msg.get_payload()).unwrap(),
-                    None => None,
-                }
-            }
-            Err(_) => None,
-        }
-    }
-
-    pub fn encode_message(msg: LmcpMessage) -> Option<Vec<u8>> {
-        let mut buf = vec![0; Self::DEFAULT_SER_BUFFER_SIZE];
-        match msg.ser(buf.as_mut_slice()) {
-            Ok(msg_len) => {
-                let v: Vec<_> = buf.drain(0..msg_len).collect();
-                Some(v)
-            },
-            Err(e) => {
-                println!("Error encoding message: {:?}", e);
-                None
-            }
-        }
-    }
-
     /// Parse an incoming Mavlink proto message and if it contains relevant data,
     /// update the AirVehicleState struct
     pub fn handle_mavlink_msg(
@@ -125,13 +184,19 @@ impl PixhawkProxy {
         VecDeque<LmcpMessage>,
         VecDeque<mavlink_common::MavlinkMessage>,
     ) {
+        let mut lmcp_queue = VecDeque::new();
+        let mavlink_queue = VecDeque::new();
         if let Some(msg) = proto_msg.msg_set {
             use mavlink_common::mavlink_message::MsgSet::*;
             match msg {
                 Heartbeat(_data) => {
                     // TODO: check if the heartbeat data are sane
                     self.last_heartbeat = Instant::now();
-                    println!("{:#?}", self.current_air_vehicle_state);
+                    let msg = self.current_air_vehicle_state.clone();
+                    if self.debug {
+                        println!("Pusghing msg {:#?}", msg);    
+                    }
+                    lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleState(msg));
                 }
                 VfrHud(data) => {
                     // vehicle true airspeed [m/s]
@@ -200,8 +265,44 @@ impl PixhawkProxy {
                 }
                 _ => {}
             }
+            if self.air_vehicle_configuration == None {
+                // Create a new air vehicle configuration
+                *self.current_air_vehicle_state.id_mut() = Self::AC_ID;
+
+                self.air_vehicle_configuration = Some(PixhawkProxy::create_config_message());
+                let msg = PixhawkProxy::create_config_message();
+                if self.debug {
+                    println!("Sending a configuration message {:#?}",msg);
+                }
+                lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleConfiguration(msg));
+            }
         }
-        (VecDeque::new(), VecDeque::new())
+        (lmcp_queue, mavlink_queue)
+    }
+
+    /// Sample configuration message
+    /// No payload or gimbal for now
+    /// TODO: load this from an XML file
+    pub fn create_config_message() -> AirVehicleConfiguration {
+        let mut flight_profile = FlightProfile::default();
+        *flight_profile.name_mut() = "Cruise".as_bytes().to_vec();
+        *flight_profile.airspeed_mut() = 27.5;
+        *flight_profile.pitch_angle_mut() = 0.0;
+        *flight_profile.vertical_speed_mut() = 0.0;
+        *flight_profile.max_bank_angle_mut() = 30.0;
+        *flight_profile.energy_rate_mut() = 0.02;
+
+        let mut air_veh_conf = AirVehicleConfiguration::default();
+        *air_veh_conf.id_mut() = 1;
+        *air_veh_conf.label_mut() = "UAV1".as_bytes().to_vec();
+        *air_veh_conf.minimum_speed_mut() = 15.0;
+        *air_veh_conf.maximum_speed_mut() = 35.0;
+        *air_veh_conf.nominal_speed_mut() = 27.5;
+        *air_veh_conf.minimum_altitude_mut() = 0.0;
+        *air_veh_conf.maximum_altitude_mut() = 10000.0;
+        *air_veh_conf.nominal_flight_profile_mut() = Box::new(flight_profile);
+
+        air_veh_conf
     }
 }
 
