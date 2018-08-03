@@ -1,0 +1,29 @@
+name: pixhwak proxy
+version: "1.0"
+author: Michal Podhradsky <mpodhradsky@galois.com>
+about: Connect a Pixhawk autopilot to UxAS (convert Mavlink protobuf messages to theri LMCP equivalents)
+args:
+    - MAVLINK_SUB:
+        help: IP address of the Mavlink SUBscriner, e.g. "tcp://127.0.0.1:4441"
+        required: true
+        index: 1
+    - MAVLINK_PUB:
+        help: IP address of the Mavlink PUBlisher, e.g. "tcp://127.0.0.1:44440"
+        required: true
+        index: 2
+    - LMCP_SUB:
+        help: IP address of the LMCP SUBscriber, e.g. "tcp://127.0.0.1:5555"
+        required: true
+        index: 3
+    - LMCP_PUB:
+        help: IP address of the LMCP SUBscriber, e.g. "tcp://127.0.0.1:5555". Note that if not using ZMQ:STREAM the address has to be different than the one used for LMCP_SUB
+        required: true
+        index: 4
+    - debug:
+        short: d
+        multiple: false
+        help: Emable debug prints
+    - stream:
+        short: s
+        multiple: false
+        help: Connect to LMCP over ZMQ:STREAM instead of PUB/SUB sockets

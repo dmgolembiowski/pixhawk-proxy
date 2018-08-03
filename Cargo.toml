@@ -19,3 +19,4 @@ zmq = "0.8"
 range_check = "0.1"
 uxas_attribute_message = {path="../uxas_attribute_message"}
 lmcp_sentinelizer = {path="../LmcpSentinelizer"}
+clap = {version = "~2.27.0", features = ["yaml"]}
