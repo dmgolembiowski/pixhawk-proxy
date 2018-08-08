@@ -6,27 +6,13 @@
 ///		MAVLINK RX: receives Mavlink_protobuf messages and updates `air_vehicle_state` struct
 ///		MAVLINK TX: sends Mavlink_protobuf messages that were created from incoming LMCP messages (such as mission and waypoint updates)
 ///
-extern crate prost;
-#[macro_use]
-extern crate prost_derive;
-
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-
-extern crate lmcp;
-extern crate range_check;
-extern crate zmq;
-
+/// TODO: add log!() crate for better logging
 #[macro_use]
 extern crate clap;
 
-// our internal crates
-extern crate lmcp_sentinelizer;
-extern crate uxas_attribute_message;
-
-use prost::Message;
+extern crate pixhawk_proxy;
+extern crate prost;
+extern crate zmq;
 
 use std::collections::VecDeque;
 use std::io::Cursor;
@@ -36,19 +22,16 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use clap::App;
+use prost::Message;
 
-// Include the `items` module, which is generated from items.proto.
-pub mod mavlink_common {
-    include!(concat!(env!("OUT_DIR"), "/mavlink.common.rs"));
-}
-
-mod pixhawk_proxy;
+use pixhawk_proxy::mavlink_common::MavlinkMessage;
 use pixhawk_proxy::PixhawkProxy;
 
 /// pixhawk-proxy [FLAGS] <MAVLINK_SUB> <MAVLINK_PUB> <LMCP_SUB> <LMCP_PUB>
 /// Run for example with `cargo run -- -s tcp://127.0.0.1:4440 tcp://127.0.0.1:44440 tcp://127.0.0.1:5555 tcp://127.0.0.1:5555`
+/// Or with a secondary bridge: `cargo run -- -s -d tcp://127.0.0.1:4440 tcp://127.0.0.1:44440 tcp://127.0.0.1:9999 none`
 fn main() {
-    let yaml = load_yaml!("../cli.yml");
+    let yaml = load_yaml!("../../cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
     // Default ZMQ context
@@ -92,8 +75,7 @@ fn main() {
 
                 move || loop {
                     let stream = subscriber.recv_bytes(0).unwrap();
-                    let msg =
-                        mavlink_common::MavlinkMessage::decode(&mut Cursor::new(stream)).unwrap();
+                    let msg = MavlinkMessage::decode(&mut Cursor::new(stream)).unwrap();
                     let mut lmcp_msgs_to_send = VecDeque::new();
                     let mut mavlink_msgs_to_send = VecDeque::new();
                     match proxy.lock() {
@@ -139,6 +121,7 @@ fn main() {
                     match mavlink_rx.recv() {
                         Ok(msg) => {
                             // encode message into a buffer and send data
+                            println!("Got a message to send: {:#?}", msg);
                             let mut buf = Vec::with_capacity(msg.encoded_len());
                             msg.encode(&mut buf).unwrap();
                             publisher.send(&buf, 0).unwrap(); // send buffer with 0 flags
@@ -216,11 +199,12 @@ fn main() {
                     let mut client_id = None;
                     let mut lmcp_msgs_to_send = VecDeque::new();
                     let mut mavlink_msgs_to_send = VecDeque::new();
+                    let mut stream = vec![];
                     move || loop {
                         match socket.recv_multipart(0) {
                             Ok(mut mpart) => {
                                 assert_eq!(mpart.len(), 2); // assert we have only 2 messages
-                                let stream = mpart.pop().unwrap(); // ~= mpart[1]
+                                stream.append(&mut mpart.pop().unwrap()); // ~= mpart[1]
                                 if client_id == None {
                                     client_id = Some(mpart.pop().unwrap());
                                     if debug {
@@ -232,28 +216,42 @@ fn main() {
                                     println!("th_lmcp_rx:Received {} bytes", stream.len());
                                 }
 
-                                if let Some(msg) = PixhawkProxy::decode_stream(stream) {
-                                    if debug {
-                                        println!("th_lmcp_rx:Received msg: {:#?}", msg);
-                                    }
-                                    match proxy.lock() {
-                                        Ok(mut mav_proxy) => {
-                                            if debug {
-                                                println!("th_lmcp_rx:processing message");
+                                let (res, rem) = PixhawkProxy::decode_stream(stream.clone());
+
+                                match res {
+                                    Some(msg) => {
+                                        // process msg
+                                        if debug {
+                                            println!("th_lmcp_rx:Received msg: {:?}", msg);
+                                        }
+                                        match proxy.lock() {
+                                            Ok(mut mav_proxy) => {
+                                                if debug {
+                                                    println!("th_lmcp_rx:processing message");
+                                                }
+                                                let (mut lmcp_msgs, mut mavlink_msgs) =
+                                                    mav_proxy.handle_lmcp_msg(msg);
+                                                lmcp_msgs_to_send.append(&mut lmcp_msgs);
+                                                mavlink_msgs_to_send.append(&mut mavlink_msgs);
                                             }
-                                            let (mut lmcp_msgs, mut mavlink_msgs) =
-                                                mav_proxy.handle_lmcp_msg(msg);
-                                            lmcp_msgs_to_send.append(&mut lmcp_msgs);
-                                            mavlink_msgs_to_send.append(&mut mavlink_msgs);
+                                            Err(e) => {
+                                                println!(
+                                                    "th_lmcp_rx:Error locking PixhawkProxy: {}",
+                                                    e
+                                                );
+                                            }
                                         }
-                                        Err(e) => {
-                                            println!("th_lmcp_rx:Error locking PixhawkProxy: {}",e);
-                                        }
+                                        stream.clear();
+                                    }
+                                    None => {
+                                        // keep the stream data
+                                        println!("Keeping {} of data", rem.len());
+                                        stream = rem;
                                     }
                                 }
                             }
-                            Err(e) => {
-                                println!("th_lmcp_rx:Error recv_multipart: {}", e);
+                            Err(_e) => {
+                                //println!("th_lmcp_rx:Error recv_multipart: {}", e);
                             }
                         }
 
@@ -266,8 +264,8 @@ fn main() {
                             Ok(msg) => {
                                 lmcp_msgs_to_send.push_back(msg);
                             }
-                            Err(e) => {
-                                println!("th_lmcp_rx: error at lmcprx.try_recv(): {:?}", e);
+                            Err(_e) => {
+                                //println!("th_lmcp_rx: error at lmcprx.try_recv(): {:?}", e);
                             }
                         }
 
@@ -301,12 +299,12 @@ fn main() {
                     let filter = "";
                     let addr = matches.value_of("LMCP_SUB").unwrap().clone();
 
-                    match subscriber.bind(addr) {
+                    match subscriber.connect(addr) {
                         Ok(_) => {
-                            println!("LMCP Subscriber: bound to {}", addr);
+                            println!("LMCP Subscriber: connected to {}", addr);
                         }
                         Err(e) => {
-                            println!("LMCP Subscriber error: {} binding to {}", e, addr);
+                            println!("LMCP Subscriber error: {} connecting to {}", e, addr);
                             exit(1);
                         }
                     }
@@ -315,39 +313,54 @@ fn main() {
 
                     let mut lmcp_msgs_to_send = VecDeque::new();
                     let mut mavlink_msgs_to_send = VecDeque::new();
+                    let mut stream = vec![];
                     move || loop {
-                        let stream = subscriber.recv_bytes(0).unwrap();
+                        //let stream = subscriber.recv_bytes(0).unwrap();
+                        stream.append(&mut subscriber.recv_bytes(0).unwrap());
 
                         if debug {
                             println!("Received {} bytes", stream.len());
                         }
 
-                        if let Some(msg) = PixhawkProxy::decode_stream(stream) {
-                            if debug {
-                                println!("Received msg: {:#?}", msg);
-                            }
-                            match proxy.lock() {
-                                Ok(mut mav_proxy) => {
-                                    let (mut lmcp_msgs, mut mavlink_msgs) =
-                                        mav_proxy.handle_lmcp_msg(msg);
-                                    lmcp_msgs_to_send.append(&mut lmcp_msgs);
-                                    mavlink_msgs_to_send.append(&mut mavlink_msgs);
+                        let (res, rem) = PixhawkProxy::decode_stream(stream.clone());
+                        match res {
+                            Some(msg) => {
+                                // process msg
+                                if debug {
+                                    println!("th_lmcp_rx:Received msg: {:#?}", msg);
                                 }
-                                Err(e) => {
-                                    println!("Error locking PixhawkProxy: {}", e);
+                                match proxy.lock() {
+                                    Ok(mut mav_proxy) => {
+                                        if debug {
+                                            println!("th_lmcp_rx:processing message");
+                                        }
+                                        let (mut lmcp_msgs, mut mavlink_msgs) =
+                                            mav_proxy.handle_lmcp_msg(msg);
+                                        lmcp_msgs_to_send.append(&mut lmcp_msgs);
+                                        mavlink_msgs_to_send.append(&mut mavlink_msgs);
+                                    }
+                                    Err(e) => {
+                                        println!("th_lmcp_rx:Error locking PixhawkProxy: {}", e);
+                                    }
                                 }
+                                stream.clear();
                             }
+                            None => {
+                                // keep the stream data
+                                println!("Keeping {} of data", rem.len());
+                                stream = rem;
+                            }
+                        }
 
-                            while !mavlink_msgs_to_send.is_empty() {
-                                let mavlink_msg = mavlink_msgs_to_send.pop_front().unwrap();
-                                send_to_mavlink.send(mavlink_msg).unwrap();
-                            }
+                        while !mavlink_msgs_to_send.is_empty() {
+                            let mavlink_msg = mavlink_msgs_to_send.pop_front().unwrap();
+                            send_to_mavlink.send(mavlink_msg).unwrap();
+                        }
 
-                            while !lmcp_msgs_to_send.is_empty() {
-                                let lmcp_msg = lmcp_msgs_to_send.pop_front().unwrap();
-                                // use the channel
-                                send_to_lmcp.send(lmcp_msg).unwrap();
-                            }
+                        while !lmcp_msgs_to_send.is_empty() {
+                            let lmcp_msg = lmcp_msgs_to_send.pop_front().unwrap();
+                            // use the channel
+                            send_to_lmcp.send(lmcp_msg).unwrap();
                         }
                     }
                 }),

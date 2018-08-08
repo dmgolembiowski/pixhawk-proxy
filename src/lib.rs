@@ -1,3 +1,32 @@
+extern crate prost;
+#[macro_use]
+extern crate prost_derive;
+
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
+extern crate lmcp_sentinelizer;
+extern crate uxas_attribute_message;
+
+extern crate lmcp;
+extern crate range_check;
+
+
+// Include the `items` module, which is generated from items.proto.
+pub mod mavlink_common {
+    include!(concat!(env!("OUT_DIR"), "/mavlink.common.rs"));
+}
+
+mod battery_status;
+
+use std::collections::VecDeque;
+
+// export modules
+pub use mavlink_common::*;
+pub use battery_status::BatteryStatus;
+
 // Pixhawk proxy module
 use std::time::{Duration, Instant};
 
@@ -15,52 +44,26 @@ use lmcp::afrl::cmasi::flight_profile::FlightProfileT;
 use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 use lmcp::Message as LmcpMessage;
 
-use std::collections::VecDeque;
-
 // To check ranges for sending bytes to the autopilot (u32/i32 -> u8/i8 conversion)
 use range_check::Within;
 
 use lmcp_sentinelizer::LmcpSentinelizer;
 use uxas_attribute_message::AddressedAttributedMessage;
 
-use super::mavlink_common;
+use std::f32::NAN;
+
 
 const DEFAULT_KEEP_ALIVE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
-/// Helper struct to keep energy data together
-struct BatteryStatus {
-    timestamp: Option<Instant>,
-    energy_available: Option<f32>,
-    energy_rate: Option<f32>,
+enum MissionStatus {
+    RequestCount,
+    CountRequested,
+    //MissionRequest(u16),
+    //MissionItem(u16),
+    //MissionAck,
 }
 
-impl BatteryStatus {
-    pub fn new() -> BatteryStatus {
-        BatteryStatus {
-            timestamp: None,
-            energy_available: None,
-            energy_rate: None,
-        }
-    }
 
-    /// Update internal values with new data
-    pub fn update(&mut self, timestamp: Instant, energy_available: f32) {
-        if let Some(last_ts) = self.timestamp {
-            let dt = timestamp.duration_since(last_ts);
-            if let Some(last_energy) = self.energy_available {
-                if last_energy == energy_available {
-                    // TODO: set to 0 if no change for a given time
-                    return; // no change
-                }
-                let dt = dt.as_secs() as f32 + dt.subsec_nanos() as f32 * 1e-9;
-                let e_rate = (energy_available - last_energy) / dt;
-                self.energy_rate = Some(e_rate);
-            }
-        }
-        self.timestamp = Some(timestamp);
-        self.energy_available = Some(energy_available);
-    }
-}
 
 /// Structure containing all necessary proxy data
 pub struct PixhawkProxy {
@@ -78,6 +81,8 @@ pub struct PixhawkProxy {
     current_air_vehicle_state: AirVehicleState,
     /// AirVehicleConfiguration Message
     air_vehicle_configuration: Option<AirVehicleConfiguration>,
+    /// Mission status
+    mission_status: MissionStatus,
 }
 
 impl Default for PixhawkProxy {
@@ -90,89 +95,48 @@ impl Default for PixhawkProxy {
             current_air_vehicle_state: AirVehicleState::default(),
             battery_status: BatteryStatus::new(),
             air_vehicle_configuration: None,
+            mission_status: MissionStatus::RequestCount,
         }
     }
 }
 
 impl PixhawkProxy {
     /// For serialization of LMCP messages
-    const DEFAULT_SER_BUFFER_SIZE: usize = 1024;
-    
-    const AC_ID: i64 = 101;
+    const DEFAULT_SER_BUFFER_SIZE: usize = 8200;
+
+    const AC_ID: i64 = 400;
 
     pub fn set_debug(&mut self, debug: bool) {
         self.debug = debug;
     }
 
-    /// Attempt to decode a received strem
-    /// Expected format is
-    /// LmcpSentinelizer:
-    /// 	AddressedAttributedMessage:
-    ///			LmcpMessage
-    ///
-    /// TODO: make Sentinel configurable
-    pub fn decode_stream(stream: Vec<u8>) -> Option<LmcpMessage> {
-        match LmcpSentinelizer::parse_sentinelized_stream(stream) {
-            Ok(msg) => match AddressedAttributedMessage::deserialize(msg) {
-                Some(msg) => match LmcpMessage::deser(msg.get_payload()) {
-                    Ok(msg) => msg, // already wrappen in Option
-                    Err(e) => {
-                        println!("PixhawkProxy::decode_message: Error decoding stream: {:?}", e);
-                        None
-                    }
-                },
-                None => None,
-            },
-            Err(e) => {
-                println!("PixhawkProxy::decode_message: Error decoding stream: {:?}", e);
-                None
-            }
-        }
-    }
-
-    /// Attemp to encode an LMCP message
-    /// Wrap the message with AddressedAttributedMessage
-    /// and then LmcpSentinelizer so the resulting format is:
-    /// LmcpSentinelizer:
-    /// 	AddressedAttributedMessage:
-    ///			LmcpMessage
-    ///
-    /// TODO: make Sentinel/AttributedMessage configurable
-    /// Attributed message has extra header in the form of:
-    /// `afrl.cmasi.SessionStatus$lmcp|afrl.cmasi.SessionStatus||0|0$`
-    pub fn encode_message(msg: LmcpMessage) -> Option<Vec<u8>> {
-        let mut buf = vec![0; Self::DEFAULT_SER_BUFFER_SIZE];
-        let lmcp_type_name = msg.subscription();
-        match msg.ser(buf.as_mut_slice()) {
-            Ok(msg_len) => {
-                let v: Vec<_> = buf.drain(0..msg_len).collect();
-                let mut msg = AddressedAttributedMessage::default();
-                msg.set_address(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
-                msg.set_content_type("lmcp"); // type of the payload message
-                msg.set_descriptor(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
-                //msg.set_sender_group(val) // TODO: not needed?
-                msg.set_sender_entity_id("0");
-                msg.set_sender_service_id("0");
-                msg.set_payload(v); // serialized LMCP message
-                let stream = LmcpSentinelizer::create_sentinelized_stream(&msg.serialize());
-                Some(stream)
-            }
-            Err(e) => {
-                println!("PixhawkProxy::encode_message: Error encoding message: {:?}", e);
-                None
-            }
-        }
-    }
-
     /// handle incoming messages, does nothing for now
     pub fn handle_lmcp_msg(
         &mut self,
-        _lmcp_msg: LmcpMessage,
+        lmcp_msg: LmcpMessage,
     ) -> (
         VecDeque<LmcpMessage>,
         VecDeque<mavlink_common::MavlinkMessage>,
     ) {
-        (VecDeque::new(), VecDeque::new())
+        let lmcp_queue = VecDeque::new();
+        let mut mavlink_queue = VecDeque::new();
+
+        match lmcp_msg {
+            LmcpMessage::AfrlCmasiMissionCommand(_data) => {
+                println!("Got mission command");
+
+                let mut mav_msg = mavlink_common::MissionClearAll::default();
+                mav_msg.target_system = 1;
+                mav_msg.target_component = 0;
+                let msg = mavlink_common::mavlink_message::MsgSet::MissionClearAll(mav_msg);
+                let mut m = mavlink_common::MavlinkMessage::default();
+                m.msg_set = Some(msg);
+                mavlink_queue.push_back(m);
+            }
+            _ => {}
+        }
+
+        (lmcp_queue, mavlink_queue)
     }
 
     /// Parse an incoming Mavlink proto message and if it contains relevant data,
@@ -185,7 +149,7 @@ impl PixhawkProxy {
         VecDeque<mavlink_common::MavlinkMessage>,
     ) {
         let mut lmcp_queue = VecDeque::new();
-        let mavlink_queue = VecDeque::new();
+        let mut mavlink_queue = VecDeque::new();
         if let Some(msg) = proto_msg.msg_set {
             use mavlink_common::mavlink_message::MsgSet::*;
             match msg {
@@ -194,9 +158,74 @@ impl PixhawkProxy {
                     self.last_heartbeat = Instant::now();
                     let msg = self.current_air_vehicle_state.clone();
                     if self.debug {
-                        println!("Pusghing msg {:#?}", msg);    
+                        println!("Pusghing msg {:?}", msg);
                     }
                     lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleState(msg));
+
+                    // this will eventually be once we get MissionCOmmand
+                    match self.mission_status {
+                        MissionStatus::RequestCount => {
+                            let mut m = mavlink_common::MavlinkMessage::default();
+                            let mut mav_msg = mavlink_common::MissionCount::default();
+                            mav_msg.target_system = 1;
+                            mav_msg.target_component = 0;
+                            mav_msg.count = 2; // 1 item for now
+                            m.msg_set = Some(
+                                mavlink_common::mavlink_message::MsgSet::MissionCount(mav_msg),
+                            );
+                            mavlink_queue.push_back(m);
+                            self.mission_status = MissionStatus::CountRequested;
+                        }
+                        _ => {}
+                    }
+
+                    /*
+                    let mut m = mavlink_common::MavlinkMessage::default();                    
+                    let mut mav_msg = mavlink_common::MissionRequestList::default();
+                    mav_msg.target_system = 1;
+                    mav_msg.target_component = 0;
+                    m.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionRequestList(mav_msg));
+                    */
+
+                    /*
+                    // DISAARM works
+                    let mut mav_msg = mavlink_common::CommandInt::default();
+                    mav_msg.target_system = 1;
+                    mav_msg.target_component = 0;
+                    mav_msg.frame = 0;
+                    mav_msg.current = 1;
+                    mav_msg.command = 400; // MAV_CMD_COMPONENT_ARM_DISARM
+                    mav_msg.autocontinue = 0;
+                    mav_msg.param1 = 0.0;
+                    mav_msg.param2 = NAN;
+                    mav_msg.param3 = NAN;
+                    mav_msg.param4 = NAN;
+                    mav_msg.x = 0;
+                    mav_msg.y = 0;
+                    mav_msg.z = 0.0;
+                    */
+
+                    /*
+                    let mut mav_msg = mavlink_common::CommandInt::default();
+                    mav_msg.target_system = 1;
+                    mav_msg.target_component = 0;
+                    mav_msg.frame = 0;
+                    mav_msg.current = 1;
+                    mav_msg.command = 22; // MAV_CMD_NAV_TAKEOFF
+                    mav_msg.autocontinue = 0;
+                    mav_msg.param1 = 0.0;
+                    mav_msg.param2 = NAN;
+                    mav_msg.param3 = NAN;
+                    mav_msg.param4 = NAN;
+                    mav_msg.x = 453171000;
+                    mav_msg.y = -1209923000;
+                    mav_msg.z = 700.0;
+                    */
+
+                    /*
+                    let mut m = mavlink_common::MavlinkMessage::default();
+                    m.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                    */
                 }
                 VfrHud(data) => {
                     // vehicle true airspeed [m/s]
@@ -263,6 +292,66 @@ impl PixhawkProxy {
                         *self.current_air_vehicle_state.actual_energy_rate_mut() = energy_rate;
                     }
                 }
+                MissionRequest(data) => {
+                    println!("Got MissionRequest: {:#?}", data);
+
+                    // respond with MISSION_ITEM
+
+                    let mut m = mavlink_common::MavlinkMessage::default();
+                    let mut mav_msg = mavlink_common::MissionItem::default();
+                    mav_msg.target_system = 1;
+                    mav_msg.target_component = 0;
+                    if data.seq == 0 {
+                        mav_msg.seq = 0;
+                        mav_msg.x = 45.3173;
+                        mav_msg.y = -120.9925;
+                        mav_msg.z = 60.0;
+                        mav_msg.current = 0;
+                    } else {
+                        mav_msg.seq = 1;
+                        mav_msg.x = 45.3177;
+                        mav_msg.y = -120.9927;
+                        mav_msg.z = 50.0;
+                        mav_msg.current = 1;
+                    }
+                    mav_msg.autocontinue = 1;
+                    mav_msg.frame = 0;
+                    mav_msg.command = 16; //MAV_CMD_NAV_LOITER_UNLIM
+                    mav_msg.param1 = 10.0;
+                    mav_msg.param2 = 10.0;
+                    mav_msg.param3 = 0.0;
+                    mav_msg.param4 = 0.0;
+
+                    m.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionItem(
+                        mav_msg,
+                    ));
+                    mavlink_queue.push_back(m);
+                }
+                MissionAck(data) => {
+                    println!("Got mission ack: {:#?}", data);
+
+                    // send to start
+                    let mut mav_msg = mavlink_common::CommandInt::default();
+                    mav_msg.target_system = 1;
+                    mav_msg.target_component = 0;
+                    mav_msg.frame = 0;
+                    mav_msg.current = 1;
+                    mav_msg.command = 300; // MAV_CMD_MISSION_START
+                    mav_msg.autocontinue = 0;
+                    mav_msg.param1 = 0.0;
+                    mav_msg.param2 = 1.0;
+                    mav_msg.param3 = NAN;
+                    mav_msg.param4 = NAN;
+                    mav_msg.x = 0;
+                    mav_msg.y = 0;
+                    mav_msg.z = 0.0;
+
+                    let mut m = mavlink_common::MavlinkMessage::default();
+                    m.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+
+                    println!("Sending {:#?}", m);
+                    mavlink_queue.push_back(m);
+                }
                 _ => {}
             }
             if self.air_vehicle_configuration == None {
@@ -272,7 +361,7 @@ impl PixhawkProxy {
                 self.air_vehicle_configuration = Some(PixhawkProxy::create_config_message());
                 let msg = PixhawkProxy::create_config_message();
                 if self.debug {
-                    println!("Sending a configuration message {:#?}",msg);
+                    println!("Sending a configuration message {:?}", msg);
                 }
                 lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleConfiguration(msg));
             }
@@ -293,8 +382,8 @@ impl PixhawkProxy {
         *flight_profile.energy_rate_mut() = 0.02;
 
         let mut air_veh_conf = AirVehicleConfiguration::default();
-        *air_veh_conf.id_mut() = 1;
-        *air_veh_conf.label_mut() = "UAV1".as_bytes().to_vec();
+        *air_veh_conf.id_mut() = PixhawkProxy::AC_ID;
+        *air_veh_conf.label_mut() = "UAV 400".as_bytes().to_vec();
         *air_veh_conf.minimum_speed_mut() = 15.0;
         *air_veh_conf.maximum_speed_mut() = 35.0;
         *air_veh_conf.nominal_speed_mut() = 27.5;
@@ -303,6 +392,72 @@ impl PixhawkProxy {
         *air_veh_conf.nominal_flight_profile_mut() = Box::new(flight_profile);
 
         air_veh_conf
+    }
+
+    /// Attempt to decode a received strem
+    /// Expected format is
+    /// LmcpSentinelizer:
+    /// 	AddressedAttributedMessage:
+    ///			LmcpMessage
+    ///
+    /// TODO: make Sentinel configurable
+    pub fn decode_stream(stream: Vec<u8>) -> (Option<LmcpMessage>, Vec<u8>) {
+        let (data, rem) = LmcpSentinelizer::parse_stream(stream);
+        if let Some(payload) = data {
+            if let Some(attr_msg) = AddressedAttributedMessage::deserialize(payload) {
+                match LmcpMessage::deser(attr_msg.get_payload()) {
+                    Ok(msg) => {
+                        // msg is an option alread
+                        return (msg, rem);
+                    }
+                    Err(e) => {
+                        println!(
+                            "PixhawkProxy::decode_message: Error decoding stream: {:?}",
+                            e
+                        );
+                        return (None, rem);
+                    }
+                }
+            }
+        }
+        (None, rem)
+    }
+
+    /// Attemp to encode an LMCP message
+    /// Wrap the message with AddressedAttributedMessage
+    /// and then LmcpSentinelizer so the resulting format is:
+    /// LmcpSentinelizer:
+    /// 	AddressedAttributedMessage:
+    ///			LmcpMessage
+    ///
+    /// TODO: make Sentinel/AttributedMessage configurable
+    /// Attributed message has extra header in the form of:
+    /// `afrl.cmasi.SessionStatus$lmcp|afrl.cmasi.SessionStatus||0|0$`
+    pub fn encode_message(msg: LmcpMessage) -> Option<Vec<u8>> {
+        let mut buf = vec![0; Self::DEFAULT_SER_BUFFER_SIZE];
+        let lmcp_type_name = msg.subscription();
+        match msg.ser(buf.as_mut_slice()) {
+            Ok(msg_len) => {
+                let v: Vec<_> = buf.drain(0..msg_len).collect();
+                let mut msg = AddressedAttributedMessage::default();
+                msg.set_address(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
+                msg.set_content_type("lmcp"); // type of the payload message
+                msg.set_descriptor(lmcp_type_name); // FULL_LMCP_TYPE_NAME e.g. afrl.cmasi.SessionStatus
+                                                    //msg.set_sender_group(val) // TODO: not needed?
+                msg.set_sender_entity_id("0"); // TODO: pick some other number?
+                msg.set_sender_service_id("0"); // TODO: pick some other number?
+                msg.set_payload(v); // serialized LMCP message
+                let stream = LmcpSentinelizer::create_sentinelized_stream(&msg.serialize());
+                Some(stream)
+            }
+            Err(e) => {
+                println!(
+                    "PixhawkProxy::encode_message: Error encoding message: {:?}",
+                    e
+                );
+                None
+            }
+        }
     }
 }
 
@@ -315,48 +470,55 @@ mod test {
     #[test]
     fn test_deserialize_1() {
         let msg = get_msg_1();
-        let msg1 = LmcpSentinelizer::parse_sentinelized_stream(msg).unwrap();
-        let msg2 = AddressedAttributedMessage::deserialize(msg1).unwrap();
-        println!("msg2={}", msg2);
-        match LmcpMessage::deser(msg2.get_payload()).unwrap() {
-            Some(msg) => {
-                println!("msg3 = {:?}", msg);
+        let (msg1, _) = LmcpSentinelizer::parse_stream(msg);
+        if let Some(data) = msg1 {
+            let msg2 = AddressedAttributedMessage::deserialize(data).unwrap();
+            println!("msg2={}", msg2);
+            match LmcpMessage::deser(msg2.get_payload()).unwrap() {
+                Some(msg) => {
+                    println!("msg3 = {:?}", msg);
+                }
+                None => panic!("LMCP msg deserialization error"),
             }
-            None => panic!("LMCP msg deserialization error"),
+        } else {
+            panic!("Parsing failed");
         }
     }
 
     #[test]
     fn test_deserialize_2() {
         let msg = get_msg_2();
-        let msg1 = LmcpSentinelizer::parse_sentinelized_stream(msg).unwrap();
-        let msg2 = AddressedAttributedMessage::deserialize(msg1).unwrap();
-        println!("msg2={}", msg2);
-        match LmcpMessage::deser(msg2.get_payload()).unwrap() {
-            Some(msg) => {
-                println!("msg3 = {:?}", msg);
+        let (msg1, _) = LmcpSentinelizer::parse_stream(msg);
+        if let Some(data) = msg1 {
+            let msg2 = AddressedAttributedMessage::deserialize(data).unwrap();
+            println!("msg2={}", msg2);
+            match LmcpMessage::deser(msg2.get_payload()).unwrap() {
+                Some(msg) => {
+                    println!("msg3 = {:?}", msg);
+                }
+                None => panic!("LMCP msg deserialization error"),
             }
-            None => panic!("LMCP msg deserialization error"),
+        } else {
+            panic!("Parsing failed");
         }
     }
 
     #[test]
     fn test_deserialize_3() {
         let msg = get_msg_3();
-        let msg1 = LmcpSentinelizer::parse_sentinelized_stream(msg).unwrap();
-        let msg2 = AddressedAttributedMessage::deserialize(msg1).unwrap();
-        println!("msg2={}", msg2);
-        match LmcpMessage::deser(msg2.get_payload()).unwrap() {
-            Some(msg) => {
-                println!("msg3 = {:?}", msg);
+        let (msg1, _) = LmcpSentinelizer::parse_stream(msg);
+        if let Some(data) = msg1 {
+            let msg2 = AddressedAttributedMessage::deserialize(data).unwrap();
+            println!("msg2={}", msg2);
+            match LmcpMessage::deser(msg2.get_payload()).unwrap() {
+                Some(msg) => {
+                    println!("msg3 = {:?}", msg);
+                }
+                None => panic!("LMCP msg deserialization error"),
             }
-            None => panic!("LMCP msg deserialization error"),
+        } else {
+            panic!("Parsing failed");
         }
-    }
-
-    #[test]
-    fn test_serialize_1() {
-        panic!("TODO: not implemented");
     }
 
     fn get_msg_1() -> Vec<u8> {

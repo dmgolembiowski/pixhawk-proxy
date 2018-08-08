@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Michal Podhradsky <mpodhradsky@galois.com>"]
 build = "build.rs"
 
+[[bin]]
+name = "main"
+
 [build-dependencies]
 prost-build = "0.4"
 
