@@ -255,7 +255,7 @@ impl PixhawkProxy {
                 VfrHud(data) => {
                     // vehicle true airspeed [m/s]
                     *self.current_air_vehicle_state.airspeed_mut() = data.airspeed;
-                    assert!(data.heading.is_within(-180..180));
+                    //assert!(data.heading.is_within(-180..180));
                     *self.current_air_vehicle_state.course_mut() = data.heading as f32;
                     *self.current_air_vehicle_state.groundspeed_mut() = data.groundspeed;
                 },
