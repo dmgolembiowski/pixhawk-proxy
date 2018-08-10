@@ -43,6 +43,8 @@ use lmcp::afrl::cmasi::waypoint::WaypointT;
 
 use lmcp::afrl::cmasi::session_status::SessionStatus;
 
+use lmcp::afrl::cmasi::simulation_status_type::SimulationStatusType;
+
 use lmcp::afrl::cmasi::altitude_type::AltitudeType;
 pub use lmcp::Message as LmcpMessage;
 
@@ -115,7 +117,7 @@ impl Default for PixhawkProxy {
             air_vehicle_configuration: None,
             waypoints: vec![],
             timer: Instant::now(),
-            proxy_status: ProxyStatus::RemoveMission,
+            proxy_status: ProxyStatus::SendConfiguration,
         }
     }
 }
@@ -135,7 +137,7 @@ impl PixhawkProxy {
 
     /// handle incoming messages, does nothing for now
     pub fn handle_lmcp_msg(&mut self, lmcp_msg: LmcpMessage) -> (VecDeque<LmcpMessage>, VecDeque<mavlink_common::MavlinkMessage>) {
-        let mut lmcp_queue = VecDeque::new();
+        let lmcp_queue = VecDeque::new();
         let mut mavlink_queue = VecDeque::new();
 
         match lmcp_msg {
@@ -177,6 +179,18 @@ impl PixhawkProxy {
             match msg {
                 Heartbeat(_data) => {
                     match self.proxy_status {
+                        ProxyStatus::SendConfiguration => {
+                            // Create a new air vehicle configuration
+                            *self.current_air_vehicle_state.id_mut() = Self::AC_ID;
+                            self.air_vehicle_configuration = Some(PixhawkProxy::create_config_message());
+                            let msg = PixhawkProxy::create_config_message();
+                            if self.debug {
+                                println!("Sending a configuration message {:?}", msg);
+                            }
+                            lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleConfiguration(msg));
+                            
+                            self.proxy_status = ProxyStatus::MissionReady;
+                        },
                         // TODO: check if the system is active
                         ProxyStatus::RemoveMission => {
                             // This doesn't really do anything
@@ -249,21 +263,6 @@ impl PixhawkProxy {
                         },
                         _ => {},
                     }
-                    /*
-                    match self.proxy_status {
-                        ProxyStatus::SendConfiguration => {
-                            // Create a new air vehicle configuration
-                            *self.current_air_vehicle_state.id_mut() = Self::AC_ID;
-
-                            self.air_vehicle_configuration = Some(PixhawkProxy::create_config_message());
-                            let msg = PixhawkProxy::create_config_message();
-                            if self.debug {
-                                println!("Sending a configuration message {:?}", msg);
-                            }
-                            lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleConfiguration(msg));
-                        },
-                        _ => {},
-                    }*/
 
                     // TODO: check if the heartbeat data are sane
                     self.last_heartbeat = Instant::now();
@@ -354,7 +353,7 @@ impl PixhawkProxy {
                         mav_msg.param1 = 0.0; // 	Hold time in decimal seconds. (ignored by fixed wing, time to stay at waypoint for rotary wing)
                     }
 
-                    mav_msg.param2 = 1.0; // Acceptance radius in meters (if the sphere with this radius is hit, the waypoint counts as reached)
+                    mav_msg.param2 = 10.0; // Acceptance radius in meters (if the sphere with this radius is hit, the waypoint counts as reached)
                     mav_msg.param3 = 0.0; // 0 to pass through the WP
                     mav_msg.param4 = NAN; // Desired yaw angle at waypoint (rotary wing). NaN for unchanged.
 
@@ -382,7 +381,7 @@ impl PixhawkProxy {
                         _ => {},
                     }
                     */
-                    mav_msg.z = 50.0;
+                    //mav_msg.z = 50.0;
 
                     let mut msg = mavlink_common::MavlinkMessage::default();
                     msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionItem(mav_msg));
@@ -392,7 +391,7 @@ impl PixhawkProxy {
                 MissionAck(data) => {
                     println!("Got mission ack: {:#?}", data);
 
-/*
+                    /*
                     // send to start
                     let mut mav_msg = mavlink_common::CommandInt::default();
                     mav_msg.target_system = Self::SYSTEM_ID;
@@ -412,24 +411,24 @@ impl PixhawkProxy {
                     let mut msg = mavlink_common::MavlinkMessage::default();
                     msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
                     */
-                        // switch to mission mode
-                        let mut mav_msg = mavlink_common::CommandInt::default();
-                        mav_msg.target_system = Self::SYSTEM_ID;
-                        mav_msg.target_component = Self::COMPONENT_ID;
-                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
-                        mav_msg.current = 0;
-                        mav_msg.command = 176; // change mode
-                        mav_msg.autocontinue = 0;
-                        mav_msg.param1 = 29.0; // 216	MAV_MODE_GUIDED_ARMED	System is allowed to be active, under autonomous control, manual setpoint
-                        mav_msg.param2 = 4.0;
-                        mav_msg.param3 = 4.0;
-                        mav_msg.param4 = NAN;
-                        mav_msg.x = 0;
-                        mav_msg.y = 0;
-                        mav_msg.z = 0.0;
+                    // switch to mission mode
+                    let mut mav_msg = mavlink_common::CommandInt::default();
+                    mav_msg.target_system = Self::SYSTEM_ID;
+                    mav_msg.target_component = Self::COMPONENT_ID;
+                    mav_msg.frame = 0; // MAV_MISSION_FRAME ?
+                    mav_msg.current = 0;
+                    mav_msg.command = 176; // change mode
+                    mav_msg.autocontinue = 0;
+                    mav_msg.param1 = 29.0; // 216	MAV_MODE_GUIDED_ARMED	System is allowed to be active, under autonomous control, manual setpoint
+                    mav_msg.param2 = 4.0;
+                    mav_msg.param3 = 4.0;
+                    mav_msg.param4 = NAN;
+                    mav_msg.x = 0;
+                    mav_msg.y = 0;
+                    mav_msg.z = 0.0;
 
-                        let mut msg = mavlink_common::MavlinkMessage::default();
-                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                    let mut msg = mavlink_common::MavlinkMessage::default();
+                    msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
 
                     println!("Sending {:#?}", msg);
                     mavlink_queue.push_back(msg);
@@ -440,8 +439,8 @@ impl PixhawkProxy {
                 MissionItemInt(data) => {
                     println!("Vehicle: {:?}", data);
                 },
-                MissionItemReached(data) => {
-                    println!("Vehicle reached mission seq {}", data.seq);
+                MissionItemReached(_data) => {
+                    //println!("Vehicle reached mission seq {}", data.seq);
                 },
                 MissionCurrent(_data) => {
                     //println!("Vehicle current mission seq {}", data.seq);
@@ -506,7 +505,7 @@ impl PixhawkProxy {
     pub fn create_config_message() -> AirVehicleConfiguration {
         let mut flight_profile = FlightProfile::default();
         *flight_profile.name_mut() = "Cruise".as_bytes().to_vec();
-        *flight_profile.airspeed_mut() = 27.5;
+        *flight_profile.airspeed_mut() = 15.0;
         *flight_profile.pitch_angle_mut() = 0.0;
         *flight_profile.vertical_speed_mut() = 0.0;
         *flight_profile.max_bank_angle_mut() = 30.0;
@@ -517,10 +516,10 @@ impl PixhawkProxy {
         *air_veh_conf.label_mut() = "UAV 400".as_bytes().to_vec();
         *air_veh_conf.minimum_speed_mut() = 15.0;
         *air_veh_conf.maximum_speed_mut() = 35.0;
-        *air_veh_conf.nominal_speed_mut() = 27.5;
+        *air_veh_conf.nominal_speed_mut() = 15.0;
         *air_veh_conf.minimum_altitude_mut() = 0.0;
         *air_veh_conf.maximum_altitude_mut() = 10000.0;
-        *air_veh_conf.nominal_altitude_mut() = 100.0; // should be 700
+        *air_veh_conf.nominal_altitude_mut() = 50.0; // should be 700
         *air_veh_conf.nominal_flight_profile_mut() = Box::new(flight_profile);
 
         air_veh_conf
@@ -588,7 +587,11 @@ impl PixhawkProxy {
 
     /// Return afrl::cmasi::session_status::SessionStatus message
     pub fn get_session_status(&self) -> LmcpMessage {
-        let msg = SessionStatus::default();
+        let mut msg = SessionStatus::default();
+        msg.start_time = 0;
+        msg.scenario_time = self.timer.elapsed().as_millis() as i64;
+        msg.real_time_multiple = 1.0;
+        msg.state = SimulationStatusType::Running;
         LmcpMessage::AfrlCmasiSessionStatus(msg)
     }
 }

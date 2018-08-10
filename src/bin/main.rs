@@ -419,7 +419,6 @@ fn main() {
     }
 
     // Spawn periodic threads
-    /*
     let p = proxy.clone();
     let sender_lmcp = Sender::clone(&lmcp_tx);
     let debug = matches.is_present("debug");
@@ -428,7 +427,6 @@ fn main() {
             .name("thread_periodic_lmcp_session_status".to_string())
             .spawn({ move || thread_periodic_lmcp_session_status(p, sender_lmcp, debug) }),
     );
-    */
 
     // wait for threads to finish
     for handle in handles {
