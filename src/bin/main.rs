@@ -30,13 +30,14 @@ use pixhawk_proxy::LmcpMessage;
 use pixhawk_proxy::PixhawkProxy;
 
 /// Periodic thread
-/// Sends periodically LMCP SessionStatus message
-fn thread_periodic_lmcp_session_status(proxy: Arc<Mutex<PixhawkProxy>>, send_to_lmcp: Sender<LmcpMessage>, _debug: bool) {
+/// Sends periodically an LMCP message
+fn thread_periodic_lmcp<F>(proxy: Arc<Mutex<PixhawkProxy>>, send_to_lmcp: Sender<LmcpMessage>, fn_periodic: F, debug: bool, period: u64) 
+where F: Fn(&PixhawkProxy) -> LmcpMessage {
     loop {
         let msg;
         match proxy.lock() {
             Ok(p) => {
-                msg = Some(p.get_session_status());
+                msg = Some(fn_periodic(&p));
             },
             Err(e) => {
                 msg = None;
@@ -44,9 +45,12 @@ fn thread_periodic_lmcp_session_status(proxy: Arc<Mutex<PixhawkProxy>>, send_to_
             },
         }
         if let Some(m) = msg {
+            if debug {
+                println!("thread_periodic_lmcp: Sending {:?}", m); 
+            }
             send_to_lmcp.send(m).unwrap();
         }
-        thread::sleep(Duration::from_millis(4000));
+        thread::sleep(Duration::from_millis(period));
     }
 }
 
@@ -425,7 +429,16 @@ fn main() {
     handles.push(
         thread::Builder::new()
             .name("thread_periodic_lmcp_session_status".to_string())
-            .spawn({ move || thread_periodic_lmcp_session_status(p, sender_lmcp, debug) }),
+            .spawn({ move || thread_periodic_lmcp(p, sender_lmcp, PixhawkProxy::get_session_status, debug, 4000) }),
+    );
+    
+    let p = proxy.clone();
+    let sender_lmcp = Sender::clone(&lmcp_tx);
+    let debug = matches.is_present("debug");
+    handles.push(
+        thread::Builder::new()
+            .name("thread_periodic_lmcp_entity_configuration".to_string())
+            .spawn({ move || thread_periodic_lmcp(p, sender_lmcp, PixhawkProxy::get_air_vehicle_configuration, debug, 2000) }),
     );
 
     // wait for threads to finish

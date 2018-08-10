@@ -73,11 +73,9 @@ const DEFAULT_KEEP_ALIVE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
 #[derive(PartialEq)]
 pub enum ProxyStatus {
-    SendConfiguration,
     RemoveMission,
     Arm,
     TakeOff,
-    UploadInitMission,
     MissionReady,
 }
 
@@ -95,8 +93,6 @@ pub struct PixhawkProxy {
     battery_status: BatteryStatus,
     /// The up-to-date AirVehicleState LMCP struct
     current_air_vehicle_state: AirVehicleState,
-    /// AirVehicleConfiguration Message
-    air_vehicle_configuration: Option<AirVehicleConfiguration>,
     /// List of current waypoints
     waypoints: Vec<Box<WaypointT>>,
     /// Start time
@@ -107,17 +103,18 @@ pub struct PixhawkProxy {
 
 impl Default for PixhawkProxy {
     fn default() -> PixhawkProxy {
+        let mut avc = AirVehicleState::default();
+        *avc.id_mut() = PixhawkProxy::AC_ID;
         PixhawkProxy {
             debug: false,
             last_heartbeat: Instant::now() - DEFAULT_KEEP_ALIVE_TIMEOUT,
             last_attitude_since_boot: Duration::new(0, 0),
             last_highres_imu_since_boot: Duration::new(0, 0),
-            current_air_vehicle_state: AirVehicleState::default(),
+            current_air_vehicle_state: avc,
             battery_status: BatteryStatus::new(),
-            air_vehicle_configuration: None,
             waypoints: vec![],
             timer: Instant::now(),
-            proxy_status: ProxyStatus::SendConfiguration,
+            proxy_status: ProxyStatus::RemoveMission,
         }
     }
 }
@@ -156,9 +153,6 @@ impl PixhawkProxy {
                     mavlink_queue.push_back(msg);
                 }
             },
-            LmcpMessage::AfrlCmasiLineSearchTask(_) => {
-                //self.proxy_status = ProxyStatus::MissionReady;
-            },
             _ => {},
         }
 
@@ -179,18 +173,6 @@ impl PixhawkProxy {
             match msg {
                 Heartbeat(_data) => {
                     match self.proxy_status {
-                        ProxyStatus::SendConfiguration => {
-                            // Create a new air vehicle configuration
-                            *self.current_air_vehicle_state.id_mut() = Self::AC_ID;
-                            self.air_vehicle_configuration = Some(PixhawkProxy::create_config_message());
-                            let msg = PixhawkProxy::create_config_message();
-                            if self.debug {
-                                println!("Sending a configuration message {:?}", msg);
-                            }
-                            lmcp_queue.push_front(LmcpMessage::AfrlCmasiAirVehicleConfiguration(msg));
-                            
-                            self.proxy_status = ProxyStatus::MissionReady;
-                        },
                         // TODO: check if the system is active
                         ProxyStatus::RemoveMission => {
                             // This doesn't really do anything
@@ -246,17 +228,6 @@ impl PixhawkProxy {
 
                             let mut msg = mavlink_common::MavlinkMessage::default();
                             msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
-                            self.proxy_status = ProxyStatus::MissionReady;
-
-                            mavlink_queue.push_back(msg);
-                        },
-                        ProxyStatus::UploadInitMission => {
-                            let mut msg = mavlink_common::MavlinkMessage::default();
-                            let mut mav_msg = mavlink_common::MissionCount::default();
-                            mav_msg.target_system = Self::SYSTEM_ID;
-                            mav_msg.target_component = Self::COMPONENT_ID;
-                            mav_msg.count = 3;
-                            msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionCount(mav_msg));
                             self.proxy_status = ProxyStatus::MissionReady;
 
                             mavlink_queue.push_back(msg);
@@ -361,28 +332,6 @@ impl PixhawkProxy {
                     mav_msg.y = self.waypoints[seq as usize].longitude() as f32; // longitude
                     mav_msg.z = self.waypoints[seq as usize].altitude() as f32; // altitude (relative or absolute, depending on frame).
 
-                    /*
-                    match seq {
-                        0 => {
-                            println!("seq = 0");
-                            mav_msg.x = 45.31678;
-                            mav_msg.y = -120.98984;
-                        },
-                        1 => {
-                            println!("seq = 1");
-                            mav_msg.x = 45.30679;
-                            mav_msg.y = -120.98985;
-                        },
-                        2 => {
-                            println!("seq = 2");
-                            mav_msg.x = 45.3268;
-                            mav_msg.y = -120.98986;
-                        },
-                        _ => {},
-                    }
-                    */
-                    //mav_msg.z = 50.0;
-
                     let mut msg = mavlink_common::MavlinkMessage::default();
                     msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionItem(mav_msg));
                     println!("Sending {:#?}", msg);
@@ -391,26 +340,6 @@ impl PixhawkProxy {
                 MissionAck(data) => {
                     println!("Got mission ack: {:#?}", data);
 
-                    /*
-                    // send to start
-                    let mut mav_msg = mavlink_common::CommandInt::default();
-                    mav_msg.target_system = Self::SYSTEM_ID;
-                    mav_msg.target_component = Self::COMPONENT_ID;
-                    mav_msg.frame = 0; // MAV_MISSION_FRAME ?
-                    mav_msg.current = 0;
-                    mav_msg.command = 300; // MAV_CMD_MISSION_START
-                    mav_msg.autocontinue = 1;
-                    mav_msg.param1 = 0.0; // first_item: the first mission item to run
-                    mav_msg.param2 = self.waypoints.len() as f32 - 1.0; // last_item: the last mission item to run (after this item is run, the mission ends)
-                    mav_msg.param3 = NAN;
-                    mav_msg.param4 = NAN;
-                    mav_msg.x = 0;
-                    mav_msg.y = 0;
-                    mav_msg.z = 0.0;
-
-                    let mut msg = mavlink_common::MavlinkMessage::default();
-                    msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
-                    */
                     // switch to mission mode
                     let mut mav_msg = mavlink_common::CommandInt::default();
                     mav_msg.target_system = Self::SYSTEM_ID;
@@ -447,82 +376,12 @@ impl PixhawkProxy {
                 },
                 CommandAck(data) => {
                     println!("Vehicle command ACK: {:?}", data);
-
-                    if data.result == 2 && data.command == 300 {
-                        println!("command retry");
-                        // mission didn;t start, try it again
-                        // send to start
-                        /*
-                        // switch to mission mode
-                        let mut mav_msg = mavlink_common::CommandInt::default();
-                        mav_msg.target_system = Self::SYSTEM_ID;
-                        mav_msg.target_component = Self::COMPONENT_ID;
-                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
-                        mav_msg.current = 0;
-                        mav_msg.command = 176; // change mode
-                        mav_msg.autocontinue = 0;
-                        mav_msg.param1 = 29.0; // 216	MAV_MODE_GUIDED_ARMED	System is allowed to be active, under autonomous control, manual setpoint
-                        mav_msg.param2 = 4.0;
-                        mav_msg.param3 = 4.0;
-                        mav_msg.param4 = NAN;
-                        mav_msg.x = 0;
-                        mav_msg.y = 0;
-                        mav_msg.z = 0.0;
-
-                        let mut msg = mavlink_common::MavlinkMessage::default();
-                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
-                        */
-                        /*
-                        let mut mav_msg = mavlink_common::CommandInt::default();
-                        mav_msg.target_system = Self::SYSTEM_ID;
-                        mav_msg.target_component = Self::COMPONENT_ID;
-                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
-                        mav_msg.current = 0;
-                        mav_msg.command = 300; // MAV_CMD_MISSION_START
-                        mav_msg.autocontinue = 1;
-                        mav_msg.param1 = 0.0; // first_item: the first mission item to run
-                        mav_msg.param2 = self.waypoints.len() as f32 - 1.0; // last_item: the last mission item to run (after this item is run, the mission ends)
-                        mav_msg.param3 = NAN;
-                        mav_msg.param4 = NAN;
-                        mav_msg.x = 0;
-                        mav_msg.y = 0;
-                        mav_msg.z = 0.0;
-
-                        let mut msg = mavlink_common::MavlinkMessage::default();
-                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
-                        */
-                    }
+                    // TODO: handle command failiure?
                 },
                 _ => {},
             }
         }
         (lmcp_queue, mavlink_queue)
-    }
-
-    /// Sample configuration message
-    /// No payload or gimbal for now
-    /// TODO: load this from an XML file
-    pub fn create_config_message() -> AirVehicleConfiguration {
-        let mut flight_profile = FlightProfile::default();
-        *flight_profile.name_mut() = "Cruise".as_bytes().to_vec();
-        *flight_profile.airspeed_mut() = 15.0;
-        *flight_profile.pitch_angle_mut() = 0.0;
-        *flight_profile.vertical_speed_mut() = 0.0;
-        *flight_profile.max_bank_angle_mut() = 30.0;
-        *flight_profile.energy_rate_mut() = 0.02;
-
-        let mut air_veh_conf = AirVehicleConfiguration::default();
-        *air_veh_conf.id_mut() = PixhawkProxy::AC_ID;
-        *air_veh_conf.label_mut() = "UAV 400".as_bytes().to_vec();
-        *air_veh_conf.minimum_speed_mut() = 15.0;
-        *air_veh_conf.maximum_speed_mut() = 35.0;
-        *air_veh_conf.nominal_speed_mut() = 15.0;
-        *air_veh_conf.minimum_altitude_mut() = 0.0;
-        *air_veh_conf.maximum_altitude_mut() = 10000.0;
-        *air_veh_conf.nominal_altitude_mut() = 50.0; // should be 700
-        *air_veh_conf.nominal_flight_profile_mut() = Box::new(flight_profile);
-
-        air_veh_conf
     }
 
     /// Attempt to decode a received strem
@@ -583,6 +442,33 @@ impl PixhawkProxy {
                 None
             },
         }
+    }
+
+    /// Retrun ::afrl::cmasi::air_vehicle_configuration::AirVehicleConfiguration message
+    /// Sample configuration message
+    /// No payload or gimbal for now
+    /// TODO: load this from an XML file
+    pub fn get_air_vehicle_configuration(&self) -> LmcpMessage {
+        let mut flight_profile = FlightProfile::default();
+        *flight_profile.name_mut() = "Cruise".as_bytes().to_vec();
+        *flight_profile.airspeed_mut() = 15.0;
+        *flight_profile.pitch_angle_mut() = 0.0;
+        *flight_profile.vertical_speed_mut() = 0.0;
+        *flight_profile.max_bank_angle_mut() = 30.0;
+        *flight_profile.energy_rate_mut() = 0.02;
+
+        let mut air_veh_conf = AirVehicleConfiguration::default();
+        *air_veh_conf.id_mut() = Self::AC_ID;
+        *air_veh_conf.label_mut() = "UAV 400".as_bytes().to_vec();
+        *air_veh_conf.minimum_speed_mut() = 15.0;
+        *air_veh_conf.maximum_speed_mut() = 35.0;
+        *air_veh_conf.nominal_speed_mut() = 15.0;
+        *air_veh_conf.minimum_altitude_mut() = 0.0;
+        *air_veh_conf.maximum_altitude_mut() = 10000.0;
+        *air_veh_conf.nominal_altitude_mut() = 50.0; // should be 700
+        *air_veh_conf.nominal_flight_profile_mut() = Box::new(flight_profile);
+
+        LmcpMessage::AfrlCmasiAirVehicleConfiguration(air_veh_conf)
     }
 
     /// Return afrl::cmasi::session_status::SessionStatus message
