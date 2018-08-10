@@ -346,6 +346,7 @@ fn main() {
     // create proxy
     let mut proxy = PixhawkProxy::default();
     proxy.set_debug(matches.is_present("debug"));
+    proxy.set_autostart(matches.is_present("autostart"));
     let proxy = Arc::new(Mutex::new(proxy));
 
     // keep thread handles

@@ -27,3 +27,8 @@ args:
         short: s
         multiple: false
         help: Connect to LMCP over ZMQ:STREAM instead of PUB/SUB sockets
+    - autostart:
+        short: a
+        multiple: false
+        help: Automatically arm and take-off the connected Pixhawk UAV
+

@@ -102,6 +102,7 @@ pub struct PixhawkProxy {
 }
 
 impl Default for PixhawkProxy {
+    /// Default implementation
     fn default() -> PixhawkProxy {
         let mut avc = AirVehicleState::default();
         *avc.id_mut() = PixhawkProxy::AC_ID;
@@ -114,7 +115,7 @@ impl Default for PixhawkProxy {
             battery_status: BatteryStatus::new(),
             waypoints: vec![],
             timer: Instant::now(),
-            proxy_status: ProxyStatus::RemoveMission,
+            proxy_status: ProxyStatus::MissionReady,
         }
     }
 }
@@ -130,6 +131,13 @@ impl PixhawkProxy {
 
     pub fn set_debug(&mut self, debug: bool) {
         self.debug = debug;
+    }
+    
+    pub fn set_autostart(&mut self, autostart: bool) {
+        match autostart {
+            true => self.proxy_status = ProxyStatus::RemoveMission,
+            false => self.proxy_status = ProxyStatus::MissionReady,
+        }
     }
 
     /// handle incoming messages, does nothing for now
