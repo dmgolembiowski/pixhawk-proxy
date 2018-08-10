@@ -69,11 +69,13 @@ pub use mavlink_common::*;
 /// TODO: send a message when the proxy times out
 const DEFAULT_KEEP_ALIVE_TIMEOUT: Duration = Duration::from_millis(10_000);
 
+#[derive(PartialEq)]
 pub enum ProxyStatus {
     SendConfiguration,
-    UploadInitMission,
+    RemoveMission,
     Arm,
     TakeOff,
+    UploadInitMission,
     MissionReady,
 }
 
@@ -113,7 +115,7 @@ impl Default for PixhawkProxy {
             air_vehicle_configuration: None,
             waypoints: vec![],
             timer: Instant::now(),
-            proxy_status: ProxyStatus::SendConfiguration,
+            proxy_status: ProxyStatus::RemoveMission,
         }
     }
 }
@@ -142,13 +144,15 @@ impl PixhawkProxy {
                 if data.vehicle_id == Self::AC_ID {
                     self.waypoints = data.waypoint_list
                 }
-                let mut msg = mavlink_common::MavlinkMessage::default();
-                let mut mav_msg = mavlink_common::MissionCount::default();
-                mav_msg.target_system = Self::SYSTEM_ID;
-                mav_msg.target_component = Self::COMPONENT_ID;
-                mav_msg.count = self.waypoints.len() as u32;
-                msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionCount(mav_msg));
-                mavlink_queue.push_back(msg);
+                if self.proxy_status == ProxyStatus::MissionReady {
+                    let mut msg = mavlink_common::MavlinkMessage::default();
+                    let mut mav_msg = mavlink_common::MissionCount::default();
+                    mav_msg.target_system = Self::SYSTEM_ID;
+                    mav_msg.target_component = Self::COMPONENT_ID;
+                    mav_msg.count = self.waypoints.len() as u32;
+                    msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionCount(mav_msg));
+                    mavlink_queue.push_back(msg);
+                }
             },
             LmcpMessage::AfrlCmasiLineSearchTask(_) => {
                 //self.proxy_status = ProxyStatus::MissionReady;
@@ -172,6 +176,79 @@ impl PixhawkProxy {
             use mavlink_common::mavlink_message::MsgSet::*;
             match msg {
                 Heartbeat(_data) => {
+                    match self.proxy_status {
+                        // TODO: check if the system is active
+                        ProxyStatus::RemoveMission => {
+                            // This doesn't really do anything
+                            let mut mav_msg = mavlink_common::MissionClearAll::default();
+                            mav_msg.target_system = Self::SYSTEM_ID;
+                            mav_msg.target_component = Self::COMPONENT_ID;
+
+                            let mut msg = mavlink_common::MavlinkMessage::default();
+                            msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionClearAll(mav_msg));
+
+                            mavlink_queue.push_back(msg);
+
+                            self.proxy_status = ProxyStatus::Arm;
+                        },
+                        ProxyStatus::Arm => {
+                            let mut mav_msg = mavlink_common::CommandInt::default();
+                            mav_msg.target_system = Self::SYSTEM_ID;
+                            mav_msg.target_component = Self::COMPONENT_ID;
+                            mav_msg.frame = 0; // N/A
+                            mav_msg.current = 0;
+                            mav_msg.command = 400; // ARM
+                            mav_msg.autocontinue = 0;
+                            mav_msg.param1 = 1.0;
+                            mav_msg.param2 = NAN;
+                            mav_msg.param3 = NAN;
+                            mav_msg.param4 = NAN;
+                            mav_msg.x = 0;
+                            mav_msg.y = 0;
+                            mav_msg.z = 0.0;
+
+                            let mut msg = mavlink_common::MavlinkMessage::default();
+                            msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+
+                            mavlink_queue.push_back(msg);
+
+                            self.proxy_status = ProxyStatus::TakeOff;
+                        },
+                        ProxyStatus::TakeOff => {
+                            let mut mav_msg = mavlink_common::CommandInt::default();
+                            mav_msg.target_system = Self::SYSTEM_ID;
+                            mav_msg.target_component = Self::COMPONENT_ID;
+                            mav_msg.frame = 0; // global altitude
+                            mav_msg.current = 0;
+                            mav_msg.command = 22; // Take off
+                            mav_msg.autocontinue = 0;
+                            mav_msg.param1 = 0.0;
+                            mav_msg.param2 = NAN;
+                            mav_msg.param3 = NAN;
+                            mav_msg.param4 = NAN;
+                            mav_msg.x = 453167755;
+                            mav_msg.y = -1209898435;
+                            mav_msg.z = 50.0;
+
+                            let mut msg = mavlink_common::MavlinkMessage::default();
+                            msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                            self.proxy_status = ProxyStatus::MissionReady;
+
+                            mavlink_queue.push_back(msg);
+                        },
+                        ProxyStatus::UploadInitMission => {
+                            let mut msg = mavlink_common::MavlinkMessage::default();
+                            let mut mav_msg = mavlink_common::MissionCount::default();
+                            mav_msg.target_system = Self::SYSTEM_ID;
+                            mav_msg.target_component = Self::COMPONENT_ID;
+                            mav_msg.count = 3;
+                            msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionCount(mav_msg));
+                            self.proxy_status = ProxyStatus::MissionReady;
+
+                            mavlink_queue.push_back(msg);
+                        },
+                        _ => {},
+                    }
                     /*
                     match self.proxy_status {
                         ProxyStatus::SendConfiguration => {
@@ -269,23 +346,53 @@ impl PixhawkProxy {
                     mav_msg.frame = 0; // Global TODO: use enums
                     mav_msg.autocontinue = 1; // Autocontinue to the next waypoint
                     mav_msg.command = 16; // MAV_CMD_NAV_WAYPOINT The scheduled action for the waypoint.
-                    mav_msg.current = 1; // false:0, true:1
-                    mav_msg.param1 = 0.0; // 	Hold time in decimal seconds. (ignored by fixed wing, time to stay at waypoint for rotary wing)
-                    mav_msg.param2 = 5.0; // Acceptance radius in meters (if the sphere with this radius is hit, the waypoint counts as reached)
+                    if seq == 0 {
+                        mav_msg.current = 1; // false:0, true:1
+                        mav_msg.param1 = 15.0; // 	Hold time in decimal seconds. (ignored by fixed wing, time to stay at waypoint for rotary wing)
+                    } else {
+                        mav_msg.current = 0; // false:0, true:1
+                        mav_msg.param1 = 0.0; // 	Hold time in decimal seconds. (ignored by fixed wing, time to stay at waypoint for rotary wing)
+                    }
+
+                    mav_msg.param2 = 1.0; // Acceptance radius in meters (if the sphere with this radius is hit, the waypoint counts as reached)
                     mav_msg.param3 = 0.0; // 0 to pass through the WP
                     mav_msg.param4 = NAN; // Desired yaw angle at waypoint (rotary wing). NaN for unchanged.
+
                     mav_msg.x = self.waypoints[seq as usize].latitude() as f32; // latitude
                     mav_msg.y = self.waypoints[seq as usize].longitude() as f32; // longitude
-                    println!("altitude = {}", self.waypoints[seq as usize].altitude() as f32);
                     mav_msg.z = self.waypoints[seq as usize].altitude() as f32; // altitude (relative or absolute, depending on frame).
+
+                    /*
+                    match seq {
+                        0 => {
+                            println!("seq = 0");
+                            mav_msg.x = 45.31678;
+                            mav_msg.y = -120.98984;
+                        },
+                        1 => {
+                            println!("seq = 1");
+                            mav_msg.x = 45.30679;
+                            mav_msg.y = -120.98985;
+                        },
+                        2 => {
+                            println!("seq = 2");
+                            mav_msg.x = 45.3268;
+                            mav_msg.y = -120.98986;
+                        },
+                        _ => {},
+                    }
+                    */
+                    mav_msg.z = 50.0;
 
                     let mut msg = mavlink_common::MavlinkMessage::default();
                     msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::MissionItem(mav_msg));
+                    println!("Sending {:#?}", msg);
                     mavlink_queue.push_back(msg);
                 },
                 MissionAck(data) => {
                     println!("Got mission ack: {:#?}", data);
 
+/*
                     // send to start
                     let mut mav_msg = mavlink_common::CommandInt::default();
                     mav_msg.target_system = Self::SYSTEM_ID;
@@ -294,8 +401,8 @@ impl PixhawkProxy {
                     mav_msg.current = 0;
                     mav_msg.command = 300; // MAV_CMD_MISSION_START
                     mav_msg.autocontinue = 1;
-                    mav_msg.param1 = 1.0; // first_item: the first mission item to run
-                    mav_msg.param2 = self.waypoints.len() as f32; // last_item: the last mission item to run (after this item is run, the mission ends)
+                    mav_msg.param1 = 0.0; // first_item: the first mission item to run
+                    mav_msg.param2 = self.waypoints.len() as f32 - 1.0; // last_item: the last mission item to run (after this item is run, the mission ends)
                     mav_msg.param3 = NAN;
                     mav_msg.param4 = NAN;
                     mav_msg.x = 0;
@@ -304,16 +411,89 @@ impl PixhawkProxy {
 
                     let mut msg = mavlink_common::MavlinkMessage::default();
                     msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                    */
+                        // switch to mission mode
+                        let mut mav_msg = mavlink_common::CommandInt::default();
+                        mav_msg.target_system = Self::SYSTEM_ID;
+                        mav_msg.target_component = Self::COMPONENT_ID;
+                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
+                        mav_msg.current = 0;
+                        mav_msg.command = 176; // change mode
+                        mav_msg.autocontinue = 0;
+                        mav_msg.param1 = 29.0; // 216	MAV_MODE_GUIDED_ARMED	System is allowed to be active, under autonomous control, manual setpoint
+                        mav_msg.param2 = 4.0;
+                        mav_msg.param3 = 4.0;
+                        mav_msg.param4 = NAN;
+                        mav_msg.x = 0;
+                        mav_msg.y = 0;
+                        mav_msg.z = 0.0;
+
+                        let mut msg = mavlink_common::MavlinkMessage::default();
+                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
 
                     println!("Sending {:#?}", msg);
                     mavlink_queue.push_back(msg);
                 },
+                MissionItem(data) => {
+                    println!("Vehicle: {:?}", data);
+                },
+                MissionItemInt(data) => {
+                    println!("Vehicle: {:?}", data);
+                },
                 MissionItemReached(data) => {
                     println!("Vehicle reached mission seq {}", data.seq);
-                }
-                MissionCurrent(data) => {
-                    println!("Vehicle current mission seq {}", data.seq);
-                }
+                },
+                MissionCurrent(_data) => {
+                    //println!("Vehicle current mission seq {}", data.seq);
+                },
+                CommandAck(data) => {
+                    println!("Vehicle command ACK: {:?}", data);
+
+                    if data.result == 2 && data.command == 300 {
+                        println!("command retry");
+                        // mission didn;t start, try it again
+                        // send to start
+                        /*
+                        // switch to mission mode
+                        let mut mav_msg = mavlink_common::CommandInt::default();
+                        mav_msg.target_system = Self::SYSTEM_ID;
+                        mav_msg.target_component = Self::COMPONENT_ID;
+                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
+                        mav_msg.current = 0;
+                        mav_msg.command = 176; // change mode
+                        mav_msg.autocontinue = 0;
+                        mav_msg.param1 = 29.0; // 216	MAV_MODE_GUIDED_ARMED	System is allowed to be active, under autonomous control, manual setpoint
+                        mav_msg.param2 = 4.0;
+                        mav_msg.param3 = 4.0;
+                        mav_msg.param4 = NAN;
+                        mav_msg.x = 0;
+                        mav_msg.y = 0;
+                        mav_msg.z = 0.0;
+
+                        let mut msg = mavlink_common::MavlinkMessage::default();
+                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                        */
+                        /*
+                        let mut mav_msg = mavlink_common::CommandInt::default();
+                        mav_msg.target_system = Self::SYSTEM_ID;
+                        mav_msg.target_component = Self::COMPONENT_ID;
+                        mav_msg.frame = 0; // MAV_MISSION_FRAME ?
+                        mav_msg.current = 0;
+                        mav_msg.command = 300; // MAV_CMD_MISSION_START
+                        mav_msg.autocontinue = 1;
+                        mav_msg.param1 = 0.0; // first_item: the first mission item to run
+                        mav_msg.param2 = self.waypoints.len() as f32 - 1.0; // last_item: the last mission item to run (after this item is run, the mission ends)
+                        mav_msg.param3 = NAN;
+                        mav_msg.param4 = NAN;
+                        mav_msg.x = 0;
+                        mav_msg.y = 0;
+                        mav_msg.z = 0.0;
+
+                        let mut msg = mavlink_common::MavlinkMessage::default();
+                        msg.msg_set = Some(mavlink_common::mavlink_message::MsgSet::CommandInt(mav_msg));
+                        */
+                    }
+                },
                 _ => {},
             }
         }
@@ -405,7 +585,7 @@ impl PixhawkProxy {
             },
         }
     }
-    
+
     /// Return afrl::cmasi::session_status::SessionStatus message
     pub fn get_session_status(&self) -> LmcpMessage {
         let msg = SessionStatus::default();
