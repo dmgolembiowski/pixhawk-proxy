@@ -11,7 +11,7 @@ name = "main"
 prost-build = "0.4"
 
 [dependencies]
-lmcp = { path = "../UxAS-generated-lmcp" }
+lmcp = { path = "../OpenUxAS/src/LMCP/rs" }
 bytes = "0.4"
 prost = "0.4"
 prost-derive = "0.4"
