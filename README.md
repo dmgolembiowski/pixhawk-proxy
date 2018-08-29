@@ -64,7 +64,12 @@ $ chmod +x install_rust_repos.sh
 $ ./install_rust_repos.sh
 ```
 
-And wait. The Gazebo/Ros install will likely end with some kind of error, but that is expected.
+And wait. The Gazebo/Ros install will likely end with some kind of error, but that is expected. Also, `ubuntu_sim_ros_gazebo.sh` installer appends your `~/.bashrc` file, so you might want to delete these two lines from `~/.bashrc`:
+```
+source /opt/ros/kinetic/setup.bash
+source ~/catkin_ws/devel/setup.bash
+```
+
 
 You should end up with a directory structure like this:
 ```
