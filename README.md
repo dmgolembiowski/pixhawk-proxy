@@ -36,7 +36,7 @@ echo "Clone and build OpenAMASE"
 git clone https://github.com/afrl-rq/OpenAMASE.git && cd OpenAMASE/OpenAMASE && ant jar && cd ../..
 
 echo "Get UxAS prerequisities"
-cd OpenUxAS && git checkout rust
+cd OpenUxAS && git checkout pixhawk
 bash install_prerequisites.sh 
 
 echo "Run LMCP Gen"
