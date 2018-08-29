@@ -1,6 +1,9 @@
 # pixhawk-proxy
 OpenUxAS service communicating with Pixhawk autopilot via MAVLINK
 
+# Supported systems
+Tested on Ubnutu 16.04
+
 # Prerequisities
 
 1. You will need [Rust](https://rustup.rs/). Make sure you install latest nightly version with:
@@ -9,6 +12,11 @@ $ rustup install nightly
 $ rustup default nightly
 $ rustup update nightly
 ```
+2. You will need `clang-format` for formattig generated protobuf files.
+```
+$ sudo apt install clang-format
+```
+
 
 # Installation
 
