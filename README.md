@@ -1,6 +1,15 @@
 # pixhawk-proxy
 OpenUxAS service communicating with Pixhawk autopilot via MAVLINK
 
+# Prerequisities
+
+1. You will need [Rust](https://rustup.rs/). Make sure you install latest nightly version with:
+```
+$ rustup install nightly
+$ rustup default nightly
+$ rustup update nightly
+```
+
 # Installation
 
 Use the following handy script (save it as for example `install_rust_repos.sh`):
