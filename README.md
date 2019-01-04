@@ -31,7 +31,7 @@ git clone https://github.com/GaloisInc/mavlink2protobuf_service.git
 git clone https://github.com/GaloisInc/pixhawk-proxy.git
 
 echo "Clone PX4 Firmware"
-git clone https://github.com/GaloisInc/Firmware.git
+git clone -b uxas_master https://github.com/GaloisInc/Firmware.git
 
 echo "Download QGroundControl"
 wget https://s3-us-west-2.amazonaws.com/qgroundcontrol/latest/QGroundControl.AppImage && chmod +x ./QGroundControl.AppImage
