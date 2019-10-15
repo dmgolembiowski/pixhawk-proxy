@@ -1,21 +1,28 @@
 #!/bin/bash
 
-# Setup gazebo repo connection - http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install
-sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+# Install a few random packages.
+# curl              used below to pull install scripts from web
+# build-essential   Installs make, g++, gcc
+# clang-format      Used by a later install script
+# meson             Creates build scripts for ninja
+# ninja             Builds UxAS
+# ant               Builds java Apps
+# rustc             Rust support for a couple repos.
+sudo apt install -y curl build-essential clang-format meson ninja ant rustc
 
-# Setup java repo connection
-sudo add-apt-repository ppa:webupd8team/java
+# Only run this one once. It will warn you before running twice that second runs
+# may mess it up.
+curl -sSL http://get.gazebosim.org | sh
 
-# Update apt after adding new repos.
-sudo apt update
-
-# installs packages             will prompt for sudo password
-ansible-playbook configure.yml --ask-become-pass
-
-bash install_rust.sh
+# Must be nightly because developer used features only availible in the nightly branch
+# NOTE: Nightly features either make it into the main rust branch or they are dropped.
+#       If the rust programs can't compile at a later date it may be that the features
+#       he used were dropped rather than integrated into the stable Rust release.
+rustup install nightly
+rustup default nightly
+rustup update nightly
 
 cd ..
-bash clone_repos.sh
-
-bash build_stuff.sh
+#bash pixhawk-proxy/clone_repos.sh
+#
+#bash pixhawk-proxy/build_stuff.sh
