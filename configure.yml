@@ -24,12 +24,17 @@
         name: "{{ item.name }}"
         state: present
       loop:
+        - { name: "build-essential" } # Installs gcc, g++, and make
         - { name: "oracle-java8-installer" }
         - { name: "clang-format"  } # Required for a later script (may remove if can find way around)
         - { name: "gazebo9" }
         - { name: "gazebo9-dev" } # Added pkg for developers
+        - { name: "meson" } # Used to build repo executables
+        - { name: "ninja" } # Used by meson to build repo executables
+        - { name: "ant" } # Used to build java executables
         # - { name: "libzmq3-dev"   } # Is pulled later?
         #- { name: "openjdk-11-jdk" } # May actually need java 8 not 11 TODO: Verify
+        # - { name: "manpages-dev" } # Not strictly required
 
 
 ...
