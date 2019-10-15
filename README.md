@@ -8,30 +8,37 @@ Tested on Ubnutu 18.04
 
 Assuming a fresh, minimal Ubuntu 18.04 install. (This will install multiple packages and revert packages which may already exist. It may be helpful to use a virtual machine.)
 
-1. Install Ansible so you can execute the configuration scripts. Ansible scripts perform a similar function to most bash configuration scripts but they are far easier to write and read. They're also indempotent which is a fancy word for saying you never have to worry about breaking something if you run the script multiple times. The script is more of a data file that describes an end state. The python backend reads the desired end state and endeavours to make your system match.
-
-    ```
-    sudo apt install ansible -y
-    ```
-2. Install git and sign into your account so you can clone this repo.
+1. Install git and sign into your account so you can clone this repo.
     ```
     sudo apt install git -y
     ```
     See [how to make a ssh key](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) and [how to add key to account](https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account) if you want to clone via ssh.
 
-Update the file paths and run the ansible script provided <insert file line>. Use it to replace everything below.
-
 1. You will need [Rust](https://rustup.rs/). Make sure you install latest nightly version with:
-```
-$ rustup install nightly
-$ rustup default nightly
-$ rustup update nightly
-```
-2. You will need `clang-format` for formattig generated protobuf files.
-```
-$ sudo apt install clang-format
-```
 
+```
+# Install a few random packages.
+# curl              used below to pull install scripts from web
+# build-essential   Installs make, g++, gcc
+# clang-format      Formats generated protobuf files
+# meson             Creates build scripts for ninja
+# ninja             Builds UxAS
+# ant               Builds java Apps
+# rustc             Rust support for a couple repos.
+sudo apt install -y curl build-essential clang-format meson ninja ant rustc
+
+# Only run this one once. It will warn you before running twice that second runs
+# may mess it up.
+curl -sSL http://get.gazebosim.org | sh
+
+# Must be nightly because developer used features only availible in the nightly branch
+# NOTE: Nightly features either make it into the main rust branch or they are dropped.
+#       If the rust programs can't compile at a later date it may be that the features
+#       he used were dropped rather than integrated into the stable Rust release.
+rustup install nightly
+rustup default nightly
+rustup update nightly
+```
 
 # Installation
 

@@ -8,7 +8,13 @@
 # ninja             Builds UxAS
 # ant               Builds java Apps
 # rustc             Rust support for a couple repos.
-sudo apt install -y curl build-essential clang-format meson ninja ant rustc
+sudo apt install -y curl
+sudo apt install -y build-essential
+sudo apt install -y clang-format
+sudo apt install -y meson
+sudo apt install -y ninja
+sudo apt install -y ant
+sudo apt install -y rustc
 
 # Only run this one once. It will warn you before running twice that second runs
 # may mess it up.
