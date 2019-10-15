@@ -6,18 +6,17 @@ Tested on Ubnutu 18.04
 
 # Prerequisities
 
-Assuming a fresh, minimal Ubuntu 18.04 install.
+Assuming a fresh, minimal Ubuntu 18.04 install. (This will install multiple packages and revert packages which may already exist. It may be helpful to use a virtual machine.)
 
 1. Install Ansible so you can execute the configuration scripts. Ansible scripts perform a similar function to most bash configuration scripts but they are far easier to write and read. They're also indempotent which is a fancy word for saying you never have to worry about breaking something if you run the script multiple times. The script is more of a data file that describes an end state. The python backend reads the desired end state and endeavours to make your system match.
 
-    '''
+    ```
     sudo apt install ansible -y
-    '''
-
+    ```
 2. Install git and sign into your account so you can clone this repo.
-    '''
+    ```
     sudo apt install git -y
-    '''
+    ```
     See [how to make a ssh key](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) and [how to add key to account](https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account) if you want to clone via ssh.
 
 Update the file paths and run the ansible script provided <insert file line>. Use it to replace everything below.
