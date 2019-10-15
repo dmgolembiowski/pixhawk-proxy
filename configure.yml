@@ -4,34 +4,35 @@
   become_method: sudo
 
   tasks:
-    - name: "Add {{ item.name }} repo to apt"
-      apt_repository:
-        repo: "{{ item.repo }}"
-        state: present
-        update_cache: yes
-      loop:
-        - { name: 'Gazebo', repo: 'deb http://packages.osrfoundation.org/gazebo/ubuntu-stable' }
-        - { name: 'Java/Oracle', repo: 'ppa:webupd8team/java'} # Required for oracle-java8-installer
+#    - name: "Add {{ item.name }} repo to apt"
+#      apt_repository:
+#        repo: "{{ item.repo }}"
+#        state: present
+#        update_cache: yes
+#      loop:
+#        - { name: 'Gazebo', repo: 'deb http://packages.osrfoundation.org/gazebo/ubuntu-stable' }
+#        - { name: 'Java/Oracle', repo: 'ppa:webupd8team/java'} # Required for oracle-java8-installer
 
-    # Adds whatever key it finds at the URL to apt's keyring.
-    - name: "Add Gazebo apt key"
-      apt_key:
-        url: "http://packages.osrfoundation.org/gazebo.key"
-        state: present
+#    # Adds whatever key it finds at the URL to apt's keyring.
+#    - name: "Add Gazebo apt key"
+#      apt_key:
+#        url: "http://packages.osrfoundation.org/gazebo.key"
+#        state: present
 
     - name: "Install {{ item.name }}"
       package:
         name: "{{ item.name }}"
         state: present
       loop:
+        - { name: "curl" }            # Used by rust install script
         - { name: "build-essential" } # Installs gcc, g++, and make
-        - { name: "oracle-java8-installer" }
-        - { name: "clang-format"  } # Required for a later script (may remove if can find way around)
-        - { name: "gazebo9" }
-        - { name: "gazebo9-dev" } # Added pkg for developers
-        - { name: "meson" } # Used to build repo executables
-        - { name: "ninja" } # Used by meson to build repo executables
-        - { name: "ant" } # Used to build java executables
+        - { name: "oracle-java8-installer" }  # Necessary for ?
+        - { name: "clang-format"  }   # Required for a later script (may remove if can find way around)
+        - { name: "gazebo9" }     # Works because repo was added to apt - shows airplane
+        - { name: "gazebo9-dev" } # Added pkg for developers - Necessary ?
+        - { name: "meson" }       # Used to build repo executables (esp UxAS)
+        - { name: "ninja" }       # Used by meson to build repo executables
+        - { name: "ant" }         # Used to build java executables
         # - { name: "libzmq3-dev"   } # Is pulled later?
         #- { name: "openjdk-11-jdk" } # May actually need java 8 not 11 TODO: Verify
         # - { name: "manpages-dev" } # Not strictly required

@@ -18,5 +18,4 @@ git clone https://github.com/afrl-rq/LmcpGen.git
 echo "Clone and build OpenAMASE"
 git clone https://github.com/afrl-rq/OpenAMASE.git
 
-echo "Get UxAS prerequisities"
-cd OpenUxAS && git checkout pixhawk
+
