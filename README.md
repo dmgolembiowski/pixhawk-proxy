@@ -6,15 +6,7 @@ Tested on Ubnutu 18.04
 
 # Prerequisities
 
-Assuming a fresh, minimal Ubuntu 18.04 install. (This will install multiple packages and revert packages which may already exist. It may be helpful to use a virtual machine.)
-
-1. Install git and sign into your account so you can clone this repo.
-    ```
-    sudo apt install git -y
-    ```
-    See [how to make a ssh key](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) and [how to add key to account](https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account) if you want to clone via ssh.
-
-1. You will need [Rust](https://rustup.rs/). Make sure you install latest nightly version with:
+Assuming a fresh, minimal Ubuntu 18.04 install.
 
 ```
 # Install a few random packages.
@@ -25,7 +17,13 @@ Assuming a fresh, minimal Ubuntu 18.04 install. (This will install multiple pack
 # ninja             Builds UxAS
 # ant               Builds java Apps
 # rustc             Rust support for a couple repos.
-sudo apt install -y curl build-essential clang-format meson ninja ant rustc
+sudo apt install -y curl
+sudo apt install -y build-essential
+sudo apt install -y clang-format
+sudo apt install -y meson
+sudo apt install -y ninja
+sudo apt install -y ant
+sudo apt install -y rustc
 
 # Only run this one once. It will warn you before running twice that second runs
 # may mess it up.
@@ -33,7 +31,7 @@ curl -sSL http://get.gazebosim.org | sh
 
 # Must be nightly because developer used features only availible in the nightly branch
 # NOTE: Nightly features either make it into the main rust branch or they are dropped.
-#       If the rust programs can't compile at a later date it may be that the features
+#       If the [rust](https://rustup.rs/) programs can't compile at a later date it may be that the features
 #       he used were dropped rather than integrated into the stable Rust release.
 rustup install nightly
 rustup default nightly

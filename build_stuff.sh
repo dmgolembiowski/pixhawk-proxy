@@ -4,8 +4,7 @@ echo "Build non-UxAS stuff"
 cd LmcpGen && ant jar && cd ..
 cd OpenAMASE/OpenAMASE && ant jar && cd ../..
 
-echo "Get correct UxAS branch"
-cd OpenUxAS && git checkout pixhawk && cd ../
+
 
 echo "Build UxAS - this is the problematic portion"
 echo "    Install prerequisites and generate lmcp"
