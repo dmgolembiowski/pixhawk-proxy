@@ -42,29 +42,36 @@ rustup update nightly
 
 Use the following handy script (save it as for example `install_rust_repos.sh`):
 
+## Clone repositories
 ```bash
 #!/bin/bash
 echo "Clone Rust repos from gitlab-int"
 git clone https://github.com/GaloisInc/lmcp_sentinelizer.git
 git clone https://github.com/GaloisInc/uxas_attribute_message.git
 git clone https://github.com/GaloisInc/mavlink2protobuf_service.git
-git clone https://github.com/GaloisInc/pixhawk-proxy.git
+cd mavlink2protobuf_service && git checkout 924be69 && cd ../
+# git clone https://github.com/GaloisInc/pixhawk-proxy.git # TODO: uncomment and select right commit
 
 echo "Clone PX4 Firmware"
 git clone -b uxas_master https://github.com/GaloisInc/Firmware.git
+cd Firmware && git checkout 658b957888 && cd ../
 
 echo "Download QGroundControl"
 wget https://s3-us-west-2.amazonaws.com/qgroundcontrol/latest/QGroundControl.AppImage && chmod +x ./QGroundControl.AppImage
 
-echo "Clone UxAS (Galois fork)"
-git clone https://github.com/GaloisInc/OpenUxAS && cd OpenUxAS && git checkout pixhawk && cd ..
-git clone https://github.com/afrl-rq/LmcpGen.git && cd LmcpGen && ant jar && cd ..
+echo "Clone UxAS (Galois fork, pixhawk branch)"
+git clone --single-branch --branch pixhawk https://github.com/GaloisInc/OpenUxAS
 
-echo "Clone and build OpenAMASE"
-git clone https://github.com/afrl-rq/OpenAMASE.git && cd OpenAMASE/OpenAMASE && ant jar && cd ../..
+echo "Clone AFRL LMCP generator"
+git clone https://github.com/afrl-rq/LmcpGen.git
 
-echo "Get UxAS prerequisities"
-cd OpenUxAS && git checkout pixhawk
+echo "Clone OpenAMASE"
+git clone https://github.com/afrl-rq/OpenAMASE.git
+```
+
+## Build packages 
+
+```
 bash install_prerequisites.sh 
 
 echo "Run LMCP Gen"
