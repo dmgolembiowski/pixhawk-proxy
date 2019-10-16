@@ -34,9 +34,7 @@ sudo apt -y install ant
 echo "Dependencies installed!"
 
 echo "Configuring UxAS plotting utilities ..."
-cd OpenUxAS/src/Utilities/localcoords
-sudo python3 setup.py install
-cd ../../..
+sudo python3 OpenUxAS/src/Utilities/localcoords/setup.py install
 
 echo "Generate lmcp"
 bash OpenUxAS/RunLmcpGen.sh
