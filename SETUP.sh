@@ -37,7 +37,6 @@ rustup install nightly
 rustup default nightly
 rustup update nightly
 
-cd .. # Don't put line in README.md - break instructions here.
 
 
 #bash pixhawk-proxy/build_stuff.sh

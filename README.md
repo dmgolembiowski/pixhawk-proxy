@@ -23,15 +23,24 @@ sudo apt install -y clang-format
 sudo apt install -y meson
 sudo apt install -y ninja
 sudo apt install -y ant
-sudo apt install -y rustc
 
 # Only run this one once. It will warn you before running twice that second runs
 # may mess it up.
 curl -sSL http://get.gazebosim.org | sh
 
+# Install rustup with will provide rust and utilities.
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install_rust.sh
+bash install_rust.sh --default-toolchain stable --profile default -y
+rm install_rust.sh
+
+# rustc, rustup & cargo are in ~/.profile but we'd need to log in again to get it sourced.
+# So, just manually source profile. Note: this will be required for every terminal if you want
+# to use rust until you've logged out and in.
+source ~/.profile
+
 # Must be nightly because developer used features only availible in the nightly branch
 # NOTE: Nightly features either make it into the main rust branch or they are dropped.
-#       If the [rust](https://rustup.rs/) programs can't compile at a later date it may be that the features
+#       If the rust programs can't compile at a later date it may be that the features
 #       he used were dropped rather than integrated into the stable Rust release.
 rustup install nightly
 rustup default nightly
@@ -45,12 +54,11 @@ Use the following handy script (save it as for example `install_rust_repos.sh`):
 ## Clone repositories
 ```bash
 #!/bin/bash
-echo "Clone Rust repos from gitlab-int"
 git clone https://github.com/GaloisInc/lmcp_sentinelizer.git
 git clone https://github.com/GaloisInc/uxas_attribute_message.git
 git clone https://github.com/GaloisInc/mavlink2protobuf_service.git
 cd mavlink2protobuf_service && git checkout 924be69 && cd ../
-# git clone https://github.com/GaloisInc/pixhawk-proxy.git # TODO: uncomment and select right commit
+git clone https://github.com/joe-sonrichard/pixhawk-proxy.git
 
 echo "Clone PX4 Firmware"
 git clone -b uxas_master https://github.com/GaloisInc/Firmware.git
@@ -60,32 +68,32 @@ echo "Download QGroundControl"
 wget https://s3-us-west-2.amazonaws.com/qgroundcontrol/latest/QGroundControl.AppImage && chmod +x ./QGroundControl.AppImage
 
 echo "Clone UxAS (Galois fork, pixhawk branch)"
-git clone --single-branch --branch pixhawk https://github.com/GaloisInc/OpenUxAS
+git clone --single-branch --branch master https://github.com/TangramFlex/OpenUxAS.git
 
 echo "Clone AFRL LMCP generator"
 git clone https://github.com/afrl-rq/LmcpGen.git
 
 echo "Clone OpenAMASE"
-git clone https://github.com/afrl-rq/OpenAMASE.git
+git clone https://github.com/TangramFlex/OpenAMASE.git
 ```
 
 ## Build packages 
 
 ```
+# In the OpenUxAS repo:
 bash install_prerequisites.sh 
 
-echo "Run LMCP Gen"
-bash RunLmcpGen.sh
-
-echo "Build OpenUxAS"
-./rm-external
-./prepare
-meson build --buildtype=release
-ninja -C build all
-cd ..
-
 echo "Getting Gazebo and ROS"
-# NOTE: there is probably a better way to builds this, will have to look into it
+
+# Need this to authenticate ROS repo
+sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key F42ED6FBAB17C654
+
+sudo apt install -y python-rosdistro
+sudo apt install -y python-rosinstall-generator
+sudo apt install -y python-rosedep2
+sudo apt install -y python-catkin-tools
+sudo apt install -y ros-kinetic-desktop-full
+
 wget https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_gazebo.sh
 source ubuntu_sim_ros_gazebo.sh
 
