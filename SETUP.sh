@@ -20,8 +20,9 @@ sudo apt install -y ant
 curl -sSL http://get.gazebosim.org | sh
 
 # Install rustup with will provide rust and utilities.
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-sudo sh -s -- --default-toolchain stable --profile default -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install_rust.sh
+bash install_rust.sh --default-toolchain stable --profile default -y
+rm install_rust.sh
 
 # rustc, rustup & cargo are in ~/.profile but we'd need to log in again to get it sourced.
 # So, just manually source profile. Note: this will be required for every terminal if you want
