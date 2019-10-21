@@ -33,6 +33,7 @@ sudo apt-get update
 sudo apt-get install ros-kinetic-desktop-full -y
 
 ## Initialize rosdep
+sudo apt install python-rosdep2
 sudo rosdep init
 rosdep update
 
@@ -61,16 +62,16 @@ wstool init src
 rosinstall_generator --rosdistro kinetic mavlink | tee /tmp/mavros.rosinstall
 
 # 3. Install MAVROS: get source (upstream - released)
-rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
+rosinstall_generator --rosdistro kinetic --upstream mavros | tee -a /tmp/mavros.rosinstall
 # alternative: latest source
 # rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
 # For fetching all the dependencies into your catkin_ws, just add '--deps' to the above scripts
 # ex: rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
 
 # 4. Create workspace & deps
-wstool merge -t src /tmp/mavros.rosinstall
+ostool merge -t src /tmp/mavros.rosinstall
 wstool update -t src -j4
-rosdep install --from-paths src --ignore-src -y
+rosdep install --rosdistro kinetic --from-paths src --ignore-src -y
 
 # 5. Install GeographicLib datasets:
 ./src/mavros/mavros/scripts/install_geographiclib_datasets.sh

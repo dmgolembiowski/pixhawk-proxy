@@ -24,10 +24,6 @@ sudo apt install -y meson
 sudo apt install -y ninja
 sudo apt install -y ant
 
-# Only run this one once. It will warn you before running twice that second runs
-# may mess it up.
-curl -sSL http://get.gazebosim.org | sh
-
 # Install rustup with will provide rust and utilities.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > install_rust.sh
 bash install_rust.sh --default-toolchain stable --profile default -y
@@ -83,19 +79,29 @@ git clone https://github.com/TangramFlex/OpenAMASE.git
 # In the OpenUxAS repo:
 bash install_prerequisites.sh 
 
-echo "Getting Gazebo and ROS"
+sudo apt install python-empy
+sudo apt install python-pip
+sudo pip install catkin_pkg
+sudo pip install numpy toml
+sudo apt install libboost-all-dev
 
-# Need this to authenticate ROS repo
-sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key F42ED6FBAB17C654
+echo "Getting Gazebo and ROS"
 
 sudo apt install -y python-rosdistro
 sudo apt install -y python-rosinstall-generator
 sudo apt install -y python-rosedep2
+
+# Need this to authenticate ROS repo
+sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key F42ED6FBAB17C654
 sudo apt install -y python-catkin-tools
 sudo apt install -y ros-kinetic-desktop-full
 
 wget https://raw.githubusercontent.com/PX4/Devguide/master/build_scripts/ubuntu_sim_ros_gazebo.sh
+# This script will fail near the end but it gets some dependencies we need.
 source ubuntu_sim_ros_gazebo.sh
+# This will actually get gazebo installed.
+curl -sSL http://get.gazebosim.org | sh # Tested w/ version 9.11.0
+
 
 echo "Done"
 cd ..
@@ -103,8 +109,8 @@ cd ..
 
 And then:
 ```
-$ chmod +x install_rust_repos.sh
-$ ./install_rust_repos.sh
+# chmod +x install_rust_repos.sh
+# ./install_rust_repos.sh
 ```
 
 And wait. The Gazebo/Ros install will likely end with some kind of error, but that is expected. Also, `ubuntu_sim_ros_gazebo.sh` installer appends your `~/.bashrc` file, so you might want to delete these two lines from `~/.bashrc`:
@@ -137,6 +143,22 @@ The following simulation will demonstrate a Pixhawk controller UAV following way
 ## Build and run PX4 SITL with Gazebo
 1. Go to your PX4 Firmware directory: `cd Firmware`
 2. Start Gazebo simulation with `./run_custom_sim.sh`
+
+or
+
+```
+# Set the initial simulation values to match UxAS waterway search example
+export PX4_HOME_LAT=45.3171
+export PX4_HOME_LON=-120.9923
+export PX4_HOME_ALT=28.5
+
+# This will use the simple jmavsim quadcoter simulation
+#make posix_sitl_default jmavsim
+
+# This will make a plane fly in gazebo
+make posix gazebo_plane
+
+```
 Once Gazebo is up, right-click on the airplane and select "Follow". Also wait until the simulation prints in the terminal:
 
 ```
