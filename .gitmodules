@@ -1,0 +1,23 @@
+[submodule "lmcp_sentinelizer"]
+	path = lmcp_sentinelizer
+	url = https://github.com/GaloisInc/lmcp_sentinelizer.git
+[submodule "uxas_attribute_message"]
+	path = uxas_attribute_message
+	url = https://github.com/GaloisInc/uxas_attribute_message.git
+[submodule "mavlink2protobuf_service"]
+	path = mavlink2protobuf_service
+	url = https://github.com/GaloisInc/mavlink2protobuf_service.git
+[submodule "pixhawk-proxy"]
+	path = pixhawk-proxy
+	url = https://github.com/joe-sonrichard/pixhawk-proxy.git
+[submodule "Firmware"]
+	path = Firmware
+	url = https://github.com/GaloisInc/Firmware.git
+	branch = uxas_master
+[submodule "OpenUxAS"]
+	path = OpenUxAS
+	url = https://github.com/TangramFlex/OpenUxAS.git
+	branch = master
+[submodule "LmcpGen"]
+	path = LmcpGen
+	url = https://github.com/afrl-rq/LmcpGen.git
