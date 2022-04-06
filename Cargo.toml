@@ -11,7 +11,7 @@ name = "main"
 prost-build = "0.4"
 
 [dependencies]
-lmcp = { path = "../OpenUxAS/src/LMCP/rs" }
+lmcp = { path = "OpenUxAS/src/LMCP/rs" }
 bytes = "0.4"
 prost = "0.4"
 prost-derive = "0.4"
@@ -20,6 +20,6 @@ serde_derive = "1.0"
 serde_json = "1.0"
 zmq = "0.8"
 range_check = "0.1"
-uxas_attribute_message = {path="../uxas_attribute_message"}
-lmcp_sentinelizer = {path="../lmcp_sentinelizer"}
+uxas_attribute_message = {path="uxas_attribute_message"}
+lmcp_sentinelizer = {path="lmcp_sentinelizer"}
 clap = {version = "~2.27.0", features = ["yaml"]}

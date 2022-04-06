@@ -7,9 +7,6 @@
 [submodule "mavlink2protobuf_service"]
 	path = mavlink2protobuf_service
 	url = https://github.com/GaloisInc/mavlink2protobuf_service.git
-[submodule "pixhawk-proxy"]
-	path = pixhawk-proxy
-	url = https://github.com/joe-sonrichard/pixhawk-proxy.git
 [submodule "Firmware"]
 	path = Firmware
 	url = https://github.com/GaloisInc/Firmware.git
@@ -21,3 +18,6 @@
 [submodule "LmcpGen"]
 	path = LmcpGen
 	url = https://github.com/afrl-rq/LmcpGen.git
+[submodule "OpenAMASE"]
+	path = OpenAMASE
+	url = https://github.com/afrl-rq/OpenAMASE
